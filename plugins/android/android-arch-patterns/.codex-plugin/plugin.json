@@ -1,0 +1,15 @@
+{
+  "name": "android-arch-patterns",
+  "version": "0.1.0",
+  "description": "Android Clean Architecture 고급 패턴 가이드 (UseCase 조합, Global Event, DataStore, Multi-Source)",
+  "author": {
+    "name": "TeamBlind Android"
+  },
+  "keywords": [
+    "android",
+    "clean-architecture",
+    "usecase",
+    "module"
+  ],
+  "skills": "./skills/"
+}

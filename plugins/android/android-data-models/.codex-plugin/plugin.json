@@ -1,0 +1,16 @@
+{
+  "name": "android-data-models",
+  "version": "0.1.0",
+  "description": "Android 데이터 모델 아키텍처 가이드 (Entity / VO / UiState / Room Entity / Request Body 역할 분리 및 변환 패턴)",
+  "author": {
+    "name": "TeamBlind Android"
+  },
+  "keywords": [
+    "android",
+    "data-model",
+    "entity",
+    "room",
+    "uistate"
+  ],
+  "skills": "./skills/"
+}

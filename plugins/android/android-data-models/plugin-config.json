@@ -1,15 +1,16 @@
 {
-  "name": "android-code-quality",
+  "name": "android-data-models",
   "version": "0.1.0",
-  "description": "Android 코드 품질 가이드라인 (UseCase 네이밍, 상태관리, Compose 최적화, 에러 핸들링, 테스트 설계) + 테스트/Compose Preview/성능 프로파일링/ProGuard/리소스 자동화 skills",
+  "description": "Android 데이터 모델 아키텍처 가이드 (Entity / VO / UiState / Room Entity / Request Body 역할 분리 및 변환 패턴)",
   "author": {
     "name": "TeamBlind Android"
   },
   "keywords": [
     "android",
-    "code-quality",
-    "compose",
-    "testing"
+    "data-model",
+    "entity",
+    "room",
+    "uistate"
   ],
   "targets": [
     "claude",

@@ -8,9 +8,34 @@
   },
   "plugins": [
     {
+      "name": "android-arch-patterns",
+      "source": "./plugins/android/android-arch-patterns",
+      "description": "Android Clean Architecture 고급 패턴 가이드 (UseCase 조합, Global Event, DataStore, Multi-Source)"
+    },
+    {
       "name": "android-code-quality",
       "source": "./plugins/android/android-code-quality",
       "description": "Android 코드 품질 가이드라인 (UseCase 네이밍, 상태관리, Compose 최적화, 에러 핸들링, 테스트 설계) + 테스트/Compose Preview/성능 프로파일링/ProGuard/리소스 자동화 skills"
+    },
+    {
+      "name": "android-data-models",
+      "source": "./plugins/android/android-data-models",
+      "description": "Android 데이터 모델 아키텍처 가이드 (Entity / VO / UiState / Room Entity / Request Body 역할 분리 및 변환 패턴)"
+    },
+    {
+      "name": "android-pr-generation",
+      "source": "./plugins/android/android-pr-generation",
+      "description": "Teamblind Android 팀 규격 Draft PR 자동 생성 (work/complete intent: 브랜치 베이스 추론, Jira 연동, 제목/본문 포맷, 라벨 매핑) + Sync PR 자동 생성 + PR 코드 리뷰 skill (review-pr)"
+    },
+    {
+      "name": "android-start-work",
+      "source": "./plugins/android/android-start-work",
+      "description": "Teamblind Android 작업 시작 자동화 skill (start-work: Jira 티켓 하나로 브랜치 생성 + Jira 시작 세팅 — 담당자/Start Date/수정 버전/In Progress, 부모 root 신규 생성, 부모·자식 필드 분배). generate-pr-auto(작업 종료)의 반대편(작업 시작점)"
+    },
+    {
+      "name": "android-task-planning",
+      "source": "./plugins/android/android-task-planning",
+      "description": "Teamblind Android 작업 플래닝 문서 작성 skill (task-planning: 기획서·Figma·Jira 티켓·타 플랫폼 스펙·GitHub 링크를 입력받아 코드베이스 전수조사 기반으로 팀 표준 양식의 플래닝 문서를 작성 — 서버/클라 책임 구분, 비목표 근거 명시, 교차검증)"
     }
   ]
 }

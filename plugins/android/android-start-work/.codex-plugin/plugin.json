@@ -1,0 +1,17 @@
+{
+  "name": "android-start-work",
+  "version": "0.1.0",
+  "description": "Teamblind Android 작업 시작 자동화 skill (start-work: Jira 티켓 하나로 브랜치 생성 + Jira 시작 세팅 — 담당자/Start Date/수정 버전/In Progress, 부모 root 신규 생성, 부모·자식 필드 분배). generate-pr-auto(작업 종료)의 반대편(작업 시작점)",
+  "author": {
+    "name": "TeamBlind Android"
+  },
+  "keywords": [
+    "android",
+    "jira",
+    "git",
+    "branch",
+    "start-work",
+    "workflow"
+  ],
+  "skills": "./skills/"
+}

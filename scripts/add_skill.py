@@ -32,7 +32,6 @@ def add_skill(root, platform, plugin, skill, description):
             raise ValueError("plugin has manifests but no plugin-config.json; migrate its settings first")
         marketplace = json.loads((root / "marketplace-metadata.json").read_text(encoding="utf-8"))
         config = {
-            "$comment": "수정·저장 후 저장소 루트에서 python3 scripts/generate_manifests.py 실행. 검사: python3 scripts/generate_manifests.py --check",
             "name": plugin,
             "version": "0.1.0",
             "targets": ["claude", "codex", "gemini"],

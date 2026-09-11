@@ -1,0 +1,5 @@
+{
+  "name": "android-pr-generation",
+  "version": "0.1.0",
+  "description": "Teamblind Android 팀 규격 Draft PR 자동 생성 (work/complete intent: 브랜치 베이스 추론, Jira 연동, 제목/본문 포맷, 라벨 매핑) + Sync PR 자동 생성 + PR 코드 리뷰 skill (review-pr)"
+}

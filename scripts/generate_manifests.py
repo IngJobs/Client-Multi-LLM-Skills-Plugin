@@ -40,8 +40,8 @@ def merge_settings(defaults, overrides):
 
 def render(metadata):
     """Validate common fields and return deterministic, CLI-specific JSON text."""
-    if not isinstance(metadata, dict) or not FIELDS <= set(metadata) or set(metadata) - FIELDS - set(CLI_FILES) - {"$comment", "targets", "dependencies", "resources"}:
-        raise ValueError("plugin-config requires common fields: " + ", ".join(sorted(FIELDS)) + "; optional sections: claude, codex, gemini; optional note: $comment")
+    if not isinstance(metadata, dict) or not FIELDS <= set(metadata) or set(metadata) - FIELDS - set(CLI_FILES) - {"targets", "dependencies", "resources"}:
+        raise ValueError("plugin-config requires common fields: " + ", ".join(sorted(FIELDS)) + "; optional sections: claude, codex, gemini")
     for key in ("name", "version", "description"):
         value = metadata[key]
         if not isinstance(value, str) or not value.strip():
