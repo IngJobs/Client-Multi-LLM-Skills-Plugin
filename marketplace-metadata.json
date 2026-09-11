@@ -1,0 +1,7 @@
+{
+  "name": "client-multi-llm-skills",
+  "owner": {
+    "name": "Client Team"
+  },
+  "description": "Client team skills for Claude Code, Codex and Gemini CLI"
+}

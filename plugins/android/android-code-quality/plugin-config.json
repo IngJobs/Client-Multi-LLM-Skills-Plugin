@@ -1,0 +1,28 @@
+{
+  "$comment": "이 파일 수정·저장 후 저장소 루트의 터미널에서 python3 scripts/generate_manifests.py 를 실행하세요. 저장만으로는 생성 파일이 갱신되지 않습니다. 생성 결과 확인: python3 scripts/generate_manifests.py --check",
+  "name": "android-code-quality",
+  "version": "0.1.0",
+  "description": "Android 코드 품질 가이드라인 (UseCase 네이밍, 상태관리, Compose 최적화, 에러 핸들링, 테스트 설계) + 테스트/Compose Preview/성능 프로파일링/ProGuard/리소스 자동화 skills",
+  "author": {
+    "name": "TeamBlind Android"
+  },
+  "keywords": [
+    "android",
+    "code-quality",
+    "compose",
+    "testing"
+  ],
+  "claude": {
+    "$schema": "https://json.schemastore.org/claude-code-plugin.json"
+  },
+  "codex": {
+    "skills": "./skills/"
+  },
+  "gemini": {},
+  "targets": [
+    "claude",
+    "codex",
+    "gemini"
+  ],
+  "dependencies": []
+}

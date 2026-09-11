@@ -1,0 +1,16 @@
+{
+  "name": "client-multi-llm-skills",
+  "owner": {
+    "name": "Client Team"
+  },
+  "metadata": {
+    "description": "Client team skills for Claude Code, Codex and Gemini CLI"
+  },
+  "plugins": [
+    {
+      "name": "android-code-quality",
+      "source": "./plugins/android/android-code-quality",
+      "description": "Android 코드 품질 가이드라인 (UseCase 네이밍, 상태관리, Compose 최적화, 에러 핸들링, 테스트 설계) + 테스트/Compose Preview/성능 프로파일링/ProGuard/리소스 자동화 skills"
+    }
+  ]
+}
