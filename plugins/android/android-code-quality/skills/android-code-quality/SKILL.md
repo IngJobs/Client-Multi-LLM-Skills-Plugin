@@ -13,7 +13,7 @@ PR 리뷰 피드백을 반영한 코드 품질 베스트 프랙티스입니다.
 
 ## 사용 범위
 
-팀 Android 규칙에 관한 질문에 관련 절과 예시로 답합니다. Claude에서는 `/android-code-quality:android-code-quality`, Codex에서는 `$android-code-quality`, Gemini에서는 “android-code-quality 스킬로 UseCase 네이밍 규칙을 설명해 줘”처럼 요청합니다.
+팀 Android 규칙에 관한 질문에 관련 절과 예시로 답합니다.
 답변에는 질문과 관련된 규칙과 예시를 골라 제시하고, 전체 체크리스트를 매번 반복하지 않습니다.
 이 스킬은 참조용 지식이며 파일·Jira·Git을 변경하지 않습니다. 다른 스킬 설치나 MCP 연결 없이 사용할 수 있습니다. 아래 내용은 원본 커밋 기준 팀 규칙이며 프로젝트의 명시적 지침과 충돌하면 충돌을 알리고 프로젝트 지침을 따릅니다.
 

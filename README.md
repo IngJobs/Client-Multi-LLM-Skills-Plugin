@@ -109,7 +109,17 @@ git pull
 gemini extensions update android-code-quality
 ```
 
-새 세션에서 `android-code-quality 스킬로 UseCase 네이밍 규칙을 설명해 줘`라고 요청합니다. Gemini 모델 실행 검증은 보류 상태입니다.
+새 세션에서 `android-code-quality 스킬로 UseCase 네이밍 규칙을 설명해 줘`라고 요청합니다.
+
+### 스킬 호출 검증 상태 (2026-09-11)
+
+CLI별 호출 방법은 위 사용 안내에서 관리하고, 공용 `SKILL.md` 본문에는 포함하지 않습니다. 공통 질문인 “UseCase 네이밍 규칙을 두 문장으로 설명해 줘”와 실제 읽은 파일 경로·사용 범위 첫 문장을 확인했습니다.
+
+| CLI | 검증 결과 |
+| --- | --- |
+| Claude | 로컬 플러그인을 `--plugin-dir`로 지정하여 스킬 발견·슬래시 명령 호출·수정된 본문 읽기·답변을 확인했습니다. |
+| Codex | 설치된 플러그인의 활성 상태를 확인했습니다. 수정된 본문은 임시 작업공간의 `.agents/skills/`에 연결하여 `$android-code-quality` 호출·파일 읽기·답변을 확인했습니다. 이번 검증은 수정본의 마켓플레이스 배포·재설치 검증을 포함하지 않습니다. |
+| Gemini | 기존 설치 확장의 목록에서 스킬 발견을 확인했습니다. 모델 호출은 인증 단계에서 `IneligibleTierError` / `UNSUPPORTED_CLIENT`로 실패하여 수정된 본문 로딩·명시 호출의 완료 여부는 미검증입니다. |
 
 플러그인별 `plugin-config.json`의 `targets`와 `dependencies`를 확인하고, 의존 플러그인이 있으면 해당 의존성부터 설치합니다. 현재 지식형 스킬에는 MCP가 필요하지 않습니다. MCP를 사용하는 스킬은 해당 CLI에서도 별도 연결·인증이 필요합니다. 원본과 이 저장소에서 같은 이름의 플러그인을 중복 활성화하지 않습니다.
 
