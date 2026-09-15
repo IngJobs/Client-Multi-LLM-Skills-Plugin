@@ -36,6 +36,11 @@
       "name": "android-task-planning",
       "source": "./plugins/android/android-task-planning",
       "description": "Teamblind Android 작업 플래닝 문서 작성 skill (task-planning: 기획서·Figma·Jira 티켓·타 플랫폼 스펙·GitHub 링크를 입력받아 코드베이스 전수조사 기반으로 팀 표준 양식의 플래닝 문서를 작성 — 서버/클라 책임 구분, 비목표 근거 명시, 교차검증)"
+    },
+    {
+      "name": "shared-plugin-authoring",
+      "source": "./plugins/shared/shared-plugin-authoring",
+      "description": "Client-Multi-LLM-Skills-Plugin 저장소에 플러그인·스킬을 추가하거나 기존 본문·참조·패키징을 수정할 때 사용합니다. 저장소 생성 스크립트와 설정 규칙에 따라 작성하고 검증합니다."
     }
   ]
 }

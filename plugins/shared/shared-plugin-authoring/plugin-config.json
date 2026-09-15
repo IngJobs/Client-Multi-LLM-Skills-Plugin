@@ -1,0 +1,24 @@
+{
+  "name": "shared-plugin-authoring",
+  "version": "0.1.0",
+  "targets": [
+    "claude",
+    "codex",
+    "gemini"
+  ],
+  "dependencies": [],
+  "description": "Client-Multi-LLM-Skills-Plugin 저장소에 플러그인·스킬을 추가하거나 기존 본문·참조·패키징을 수정할 때 사용합니다. 저장소 생성 스크립트와 설정 규칙에 따라 작성하고 검증합니다.",
+  "author": {
+    "name": "Client Team"
+  },
+  "keywords": [
+    "shared"
+  ],
+  "claude": {
+    "$schema": "https://json.schemastore.org/claude-code-plugin.json"
+  },
+  "codex": {
+    "skills": "./skills/"
+  },
+  "gemini": {}
+}

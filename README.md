@@ -2,7 +2,9 @@
 
 Client 팀(Android · Flutter · iOS · shared) 공용 Claude Code · Codex CLI · Gemini CLI 플러그인 저장소.
 
-각 팀이 `plugins/<platform>/`에서 플러그인을 관리합니다. 스킬 본문은 공유하고, `plugin-config.json` 하나에서 CLI별 매니페스트를 생성합니다. Claude와 Codex는 `.claude-plugin/marketplace.json` 카탈로그 하나를 사용합니다.
+1. 각 팀이 `plugins/<platform>/`에서 플러그인을 관리합니다. 
+2. 스킬 본문은 공유하고, `plugin-config.json` 하나에서 CLI별 매니페스트를 생성합니다. 
+3. Claude와 Codex는 `.claude-plugin/marketplace.json` 카탈로그 하나를 사용합니다.
 
 ## 디렉토리 구조
 
@@ -13,18 +15,27 @@ Client-Multi-LLM-Skills-Plugin/
 │   └── marketplace.json              # 생성: Claude·Codex 공용 카탈로그
 ├── plugins/
 │   └── android/                      # ios/·flutter/·shared/도 같은 구조로 추가
-│       └── android-code-quality/
+│       └── <plugin-name>/
 │           ├── plugin-config.json    # 플러그인 공통 정보·CLI별 설정 (수정 대상)
 │           ├── .claude-plugin/plugin.json  # 생성: Claude (수정 대상 X)
 │           ├── .codex-plugin/plugin.json   # 생성: Codex (수정 대상 X)
 │           ├── gemini-extension.json       # 생성: Gemini (수정 대상 X)
 │           └── skills/
-│               └── android-code-quality/SKILL.md  # 공용 스킬 본문
+│               └── <skill-name>/
+│                   ├── SKILL.md           # 공용 스킬 본문
+│                   └── references/       # 필요 시 추가하는 참조 파일
+│                       ├── execution-environment.md  # 실행 환경 지침
+│                       └── workflow.md   # 상세 업무 절차
 ├── scripts/
 │   ├── add_skill.py                  # 플러그인·스킬 골격 생성
 │   └── generate_manifests.py         # 설정 → 매니페스트·카탈로그
+├── tests/                           # 생성기·스킬 참조 링크 등 검증
 └── README.md
 ```
+
+`references/`와 그 안의 파일 구성은 예시이며, 모든 스킬의 필수 구조는 아닙니다. 스킬에 필요한 참조 파일만 추가합니다.
+
+---
 
 ## 사용
 
@@ -33,6 +44,8 @@ Client-Multi-LLM-Skills-Plugin/
 Private 저장소이므로 사전에 `gh auth login` 또는 Git 자격증명 설정을 완료하고 저장소 읽기 권한을 확보해야 합니다.
 
 아래 주소는 현재 origin인 `IngJobs/Client-Multi-LLM-Skills-Plugin` 기준입니다. 원격에 플러그인과 카탈로그가 반영된 뒤 사용할 수 있으며, 팀 저장소로 이전하면 등록 주소를 변경합니다. 마켓플레이스 이름은 저장소 이름과 별개인 `client-multi-llm-skills`입니다.
+
+플러그인별 `plugin-config.json`의 `targets`와 `dependencies`를 확인하고, 의존 플러그인이 있으면 해당 의존성부터 설치합니다. 현재 지식형 스킬에는 MCP가 필요하지 않습니다. MCP를 사용하는 스킬은 해당 CLI에서도 별도 연결·인증이 필요합니다. 원본과 이 저장소에서 같은 이름의 플러그인을 중복 활성화하지 않습니다.
 
 ### Claude Code
 
@@ -121,47 +134,19 @@ gemini extensions update android-code-quality
 
 새 세션에서 `android-code-quality 스킬로 UseCase 네이밍 규칙을 설명해 줘`라고 요청합니다.
 
-### 스킬 호출 검증 상태 (2026-09-11)
-
-CLI별 호출 방법은 위 사용 안내에서 관리하고, 공용 `SKILL.md` 본문에는 포함하지 않습니다. 공통 질문인 “UseCase 네이밍 규칙을 두 문장으로 설명해 줘”와 실제 읽은 파일 경로·사용 범위 첫 문장을 확인했습니다.
-
-| CLI | 검증 결과 |
-| --- | --- |
-| Claude | 로컬 플러그인을 `--plugin-dir`로 지정하여 스킬 발견·슬래시 명령 호출·수정된 본문 읽기·답변을 확인했습니다. |
-| Codex | 설치된 플러그인의 활성 상태를 확인했습니다. 수정된 본문은 임시 작업공간의 `.agents/skills/`에 연결하여 `$android-code-quality` 호출·파일 읽기·답변을 확인했습니다. 이번 검증은 수정본의 마켓플레이스 배포·재설치 검증을 포함하지 않습니다. |
-| Gemini | 기존 설치 확장의 목록에서 스킬 발견을 확인했습니다. 모델 호출은 인증 단계에서 `IneligibleTierError` / `UNSUPPORTED_CLIENT`로 실패하여 수정된 본문 로딩·명시 호출의 완료 여부는 미검증입니다. |
-
-플러그인별 `plugin-config.json`의 `targets`와 `dependencies`를 확인하고, 의존 플러그인이 있으면 해당 의존성부터 설치합니다. 현재 지식형 스킬에는 MCP가 필요하지 않습니다. MCP를 사용하는 스킬은 해당 CLI에서도 별도 연결·인증이 필요합니다. 원본과 이 저장소에서 같은 이름의 플러그인을 중복 활성화하지 않습니다.
+---
 
 ## 플러그인·스킬 추가
 
-플러그인 작성자는 저장소를 clone한 뒤 **저장소 루트의 터미널에서** 아래 명령을 실행합니다. Python 3.9 이상이 필요하며 추가 패키지는 필요하지 않습니다.
+플러그인·스킬 추가 및 수정에는 [shared-plugin-authoring 스킬](plugins/shared/shared-plugin-authoring/skills/shared-plugin-authoring/SKILL.md)을 사용합니다. 생성·본문 작성·패키징 설정·검증 절차를 담당합니다. 작업할 저장소를 clone하고 해당 저장소에서 CLI를 실행합니다. Python 3.9 이상이 필요하며 추가 패키지는 필요하지 않습니다.
 
-1. 자기 팀의 플랫폼과 플러그인·스킬 이름으로 아래 생성 명령을 실행합니다.
-2. 생성된 `skills/<skill>/SKILL.md`에 지침을 작성하고 필요한 참조 파일을 추가합니다.
-3. `plugin-config.json`에서 설명·작성자·버전·대상 CLI를 확인합니다. 설정을 수정했다면 매니페스트를 재생성합니다.
-4. 생성 결과를 검사하고 본문·설정·생성 파일을 함께 PR에 포함합니다.
+| CLI | 호출 예시 |
+| --- | --- |
+| Claude Code | `/shared-plugin-authoring:shared-plugin-authoring shared에 새 플러그인을 만들어줘. 목적은 …` |
+| Codex CLI | `$shared-plugin-authoring shared에 새 플러그인을 만들어줘. 목적은 …` |
+| Gemini CLI | `shared-plugin-authoring 스킬로 shared에 새 플러그인을 만들어줘. 목적은 …` |
 
-```sh
-# 새 플러그인과 첫 스킬 생성 (기존 플러그인 이름이면 스킬만 추가)
-python3 scripts/add_skill.py \
-  --platform android \
-  --plugin android-example \
-  --skill example-guide \
-  --description "예시 기능의 규칙을 질문할 때 사용하는 가이드"
-
-# plugin-config.json 수정·저장 후 실행
-python3 scripts/generate_manifests.py
-
-# 생성 파일과 설정의 일치 여부 확인 (파일 변경 없음)
-python3 scripts/generate_manifests.py --check
-```
-
-`add_skill.py`는 새 플러그인의 `plugin-config.json`, 기본 세 CLI 매니페스트와 카탈로그까지 생성합니다. 생성된 스킬은 작성용 템플릿이므로 본문을 채워야 합니다. 기존 플러그인의 설정과 스킬은 덮어쓰지 않습니다.
-
-마켓플레이스 정보는 `marketplace-metadata.json`, 플러그인 정보는 `plugin-config.json`에서 수정합니다. **생성된 매니페스트·카탈로그는 직접 수정하지 않습니다.** 파일 저장만으로 자동 갱신되지 않으며, 배포할 때는 해당 플러그인의 버전을 올리고 생성 명령을 실행합니다.
-
-스킬 본문과 참조 파일을 공유하는 구조이며, 생성기가 Claude 전용 도구·명령·에이전트를 다른 CLI 형식으로 변환하지는 않습니다. 이식이 필요한 플러그인은 `targets`에 현재 지원하는 CLI만 지정합니다.
+---
 
 ## 설정 관리
 
@@ -177,6 +162,8 @@ CLI별 객체는 공통 설정에 병합하며, 배열·일반 값은 교체하�
 
 생성기는 의존성의 누락·순환·대상 CLI 불일치를 검사합니다. Claude 매니페스트에는 의존성을 기록하지만, Codex·Gemini에서 자동 설치를 가정하지 않습니다. 공용 카탈로그에는 Claude 또는 Codex 대상 플러그인이 함께 표시되므로 `targets`는 접근 제한이 아닙니다. 매니페스트 생성만으로 실제 동작 호환성이 검증되지는 않습니다.
 
+---
+
 ## 제거
 
 ```sh
@@ -187,9 +174,24 @@ gemini extensions uninstall android-code-quality
 
 마켓플레이스 등록도 제거하려면 해당 CLI에서 `claude plugin marketplace remove client-multi-llm-skills` 또는 `codex plugin marketplace remove client-multi-llm-skills`를 실행합니다.
 
+---
+
 ## 참고
 
 - [원본 저장소](https://github.com/teamblind/client-claude-plugins)
 - [Claude 플러그인](https://code.claude.com/docs/en/plugins) · [마켓플레이스](https://code.claude.com/docs/en/plugin-marketplaces)
 - [Codex 플러그인](https://developers.openai.com/plugins/build/plugins)
 - [Gemini 확장](https://geminicli.com/docs/extensions/reference/)
+
+---
+
+## 별첨: Python 파일 역할
+
+| 파일 | 역할 |
+| --- | --- |
+| [scripts/add_skill.py](scripts/add_skill.py) | 새 스킬 골격을 만들고, 필요한 플러그인 설정·매니페스트·카탈로그를 생성합니다. |
+| [scripts/generate_manifests.py](scripts/generate_manifests.py) | 공통 설정에서 CLI별 매니페스트와 공용 카탈로그를 생성합니다. `--check`로 파일 변경 없이 일치 여부를 검사합니다. |
+| [tests/test_add_skill.py](tests/test_add_skill.py) | 스킬 생성, 기존 파일 보존, 잘못된 입력 및 생성 실패 처리를 검증합니다. |
+| [tests/test_generate_manifests.py](tests/test_generate_manifests.py) | 공통·CLI별 설정 병합과 필드 유효성 검사를 검증합니다. |
+| [tests/test_catalog.py](tests/test_catalog.py) | 카탈로그 생성, 대상 CLI 반영, 의존성·리소스 검사를 검증합니다. |
+| [tests/test_skill_links.py](tests/test_skill_links.py) | 스킬 문서의 로컬 참조 링크가 실제 파일로 연결되는지 검사하며, 코드 예시의 링크는 제외합니다. |
