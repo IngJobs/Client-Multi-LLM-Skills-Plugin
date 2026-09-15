@@ -1,13 +1,13 @@
 ---
 name: review-pr
-description: Teamblind Android PR에 대한 종합 코드 리뷰(아키텍처·코드품질·성능·가독성·재사용성·버그가능성·테스트·보안 8개 관점)를 수행하고 한국어 마크다운 리포트를 로컬 파일로 생성. "이 PR 리뷰해줘"·"PR 코드 리뷰"·"PR 봐줘" 요청이나 `/review-pr <PR번호>` 직접 호출 시 사용. 리뷰 채점 기준·우선순위(P0/P1/P2)·리포트 포맷의 단일 출처(SSOT). 커밋·푸시·PR 리뷰 게시는 하지 않음(로컬 리포트만).
+description: Teamblind Android PR에 대한 종합 코드 리뷰(아키텍처·코드품질·성능·가독성·재사용성·버그가능성·테스트·보안 8개 관점)를 수행하고 한국어 마크다운 리포트를 로컬 파일로 생성. "이 PR 리뷰해줘"·"PR 코드 리뷰"·"PR 봐줘" 요청이나 `review-pr PR번호` 이름을 지정한 요청 시 사용. 리뷰 채점 기준·우선순위(P0/P1/P2)·리포트 포맷의 단일 출처(SSOT). 커밋·푸시·PR 리뷰 게시는 하지 않음(로컬 리포트만).
 ---
 
 # Teamblind Android — PR 코드 리뷰
 
-`/review-pr <PR번호>` 로 직접 호출하거나 "이 PR 리뷰해줘" 류 요청 시 자동 발동되는 스킬입니다. GitHub PR을 **8개 관점**(아키텍처·코드 품질·성능·가독성·재사용성·버그가능성·테스트·보안)으로 다차원 분석하고, 실행 가능한 한국어 마크다운 리뷰 리포트를 **로컬 파일로 생성**합니다.
+`review-pr <PR번호>` 를 지정해 요청하거나 "이 PR 리뷰해줘" 류 요청 시 자동 발동되는 스킬입니다. GitHub PR을 **8개 관점**(아키텍처·코드 품질·성능·가독성·재사용성·버그가능성·테스트·보안)으로 다차원 분석하고, 실행 가능한 한국어 마크다운 리뷰 리포트를 **로컬 파일로 생성**합니다.
 
-> 단계별 상세 실행 절차(정확한 `gh`/Bash 명령과 컨텍스트 격리 로직)는 [references/workflow.md](references/workflow.md) 를 참조하세요. 이 문서는 **리뷰 기준·채점 루브릭·리포트 포맷의 단일 출처(canonical)** 입니다.
+> 단계별 상세 실행 절차(정확한 `gh`/셸 명령과 컨텍스트 격리 로직)는 [references/workflow.md](references/workflow.md) 를 참조하세요. 이 문서는 **리뷰 기준·채점 루브릭·리포트 포맷의 단일 출처(canonical)** 입니다.
 
 > **사전 조건**: GitHub CLI(`gh`)가 설치·인증되어 있어야 합니다.
 
@@ -15,13 +15,15 @@ description: Teamblind Android PR에 대한 종합 코드 리뷰(아키텍처·�
 
 ---
 
+실행 전에 [실행 환경 지침](references/execution-environment.md)을 읽고, 현재 환경에 맞는 도구·질문·스킬 참조 방식을 적용합니다.
+
 ## 리뷰 관점 (8개) 과 판정 기준 (SSOT 참조)
 
 리뷰는 아래 **8개 관점**으로 수행합니다. 이 8개 관점은 **채점 항목·리포트 "관점별 리뷰" 섹션과 1:1로 일치**합니다(불일치 금지). **각 관점의 판정 기준 자체는 재서술하지 않고 기존 단일 출처를 따릅니다.** (중복 정의 금지)
 
 | 관점 | 스코프 | 판정 기준의 단일 출처 |
 |---|---|---|
-| **아키텍처** | Clean Architecture 계층·의존성 방향(UI→Domain→Data)·Hilt DI(스코프/`@Binds`/순환)·패키지 구조·고급 패턴(Behavior/Action/Global Event/DataStore/Multi-Source) | `CLAUDE.md` + `android-arch-patterns` |
+| **아키텍처** | Clean Architecture 계층·의존성 방향(UI→Domain→Data)·Hilt DI(스코프/`@Binds`/순환)·패키지 구조·고급 패턴(Behavior/Action/Global Event/DataStore/Multi-Source) | 프로젝트 지침 + `android-arch-patterns` |
 | **코드 품질** | SOLID·SRP·DRY·함수 복잡도·네이밍·에러 핸들링(`runSuspendCatching` 등) | `android-code-quality` |
 | **성능** | `@Stable`/`@Immutable`·메모리 누수·Coroutines/Flow·불필요 recomposition·Strong Skipping Mode의 `remember` key | `android-code-quality` |
 | **가독성** | 명확성·명명의 직관성·제어 흐름 이해 용이성·불필요한 복잡성/주석 | 본 스킬(아래 체크리스트) + `android-code-quality`(네이밍 규칙) |
@@ -30,7 +32,7 @@ description: Teamblind Android PR에 대한 종합 코드 리뷰(아키텍처·�
 | **테스트** | 커버리지·mockable 구조·테스트 설계 | 본 스킬(아래 체크리스트) + `android-code-quality`(testability 패턴) |
 | **보안** | 민감정보(토큰·자격증명·개인정보) 로그/하드코딩/평문 노출·권한·저장 방식 | 본 스킬 (아래 체크리스트) |
 
-> 위 스킬들이 SSOT이므로, 리뷰 중 규칙 충돌이 의심되면 본 문서가 아니라 해당 스킬/CLAUDE.md를 기준으로 판정합니다.
+> 위 스킬들이 SSOT이므로, 리뷰 중 규칙 충돌이 의심되면 본 문서가 아니라 해당 스킬/프로젝트 지침를 기준으로 판정합니다.
 
 ### 체크리스트·스코프는 '예시'이지 '전부'가 아님 (비전수)
 
@@ -204,7 +206,7 @@ description: Teamblind Android PR에 대한 종합 코드 리뷰(아키텍처·�
 이 스킬의 산출물은 **로컬 리뷰 리포트 파일(`pr_<N>_code_review.md`) 하나뿐**입니다. 아래 외부 변경 동작은 **어떤 경우에도 수행하지 않습니다.**
 
 - ❌ **git commit / git push** — 어떤 브랜치에도 커밋·푸시 금지
-- ❌ **실제 PR 리뷰 게시** — `gh pr review`, `gh pr comment`, `mcp__github__create_pull_request_review`, 인라인 코멘트 작성 등 GitHub에 리뷰를 등록하는 모든 동작 금지
+- ❌ **실제 PR 리뷰 게시** — `gh pr review`, `gh pr comment`, `create_pull_request_review`, 인라인 코멘트 작성 등 GitHub에 리뷰를 등록하는 모든 동작 금지
 - ❌ **리퀘스트 체인지(Request changes) / Approve** — PR 상태를 바꾸는 모든 동작 금지
 - ❌ 원본 소스 코드 수정 — 리뷰는 분석·제안까지만. 개선안은 리포트의 스니펫으로만 제시
 
@@ -234,13 +236,13 @@ description: Teamblind Android PR에 대한 종합 코드 리뷰(아키텍처·�
 
 ## 발동 조건
 
-- `/review-pr <PR번호>` 직접 호출
+- `review-pr <PR번호>` 명시 요청
 - "이 PR 리뷰해줘", "PR 코드 리뷰", "PR 봐줘", "머지 전에 검토" 류 요청
 - PR 리뷰 기준·채점·리포트 포맷 관련 질문
 
 ## 관련 파일
 
 - 단계별 상세 실행 절차: [references/workflow.md](references/workflow.md)
-- 판정 기준 SSOT: `CLAUDE.md`, `android-arch-patterns`·`android-code-quality`·`android-data-models` 스킬
+- 판정 기준 SSOT: 프로젝트 지침, `android-arch-patterns`·`android-code-quality`·`android-data-models` 스킬
 
-> **설치 의존성**: 이 스킬은 판정 기준을 위 형제 스킬에 위임합니다. 따라서 `android-arch-patterns`·`android-code-quality`·`android-data-models`(및 계층 분류에 쓰는 `generate-pr-auto`)와 **같은 `.claude/skills/` 에 함께 설치**되어 있어야 SSOT 참조가 해석됩니다. review-pr만 단독 배포하면 일부 관점의 판정 근거가 비게 되므로, 이들을 한 묶음(동일 마켓플레이스/플러그인 그룹)으로 배포하세요.
+> **설치 의존성**: 판정 기준인 `android-arch-patterns`·`android-code-quality`·`android-data-models`와 계층 분류에 쓰는 `generate-pr-auto`를 같은 호스트에서 사용할 수 있어야 합니다. 물리적으로 같은 폴더에 둘 필요는 없으며, 실행 환경의 스킬 참조 절차로 실제 설치 위치를 확인합니다. 기준 스킬이 없을 때의 제한은 workflow 0.5단계를 따릅니다.

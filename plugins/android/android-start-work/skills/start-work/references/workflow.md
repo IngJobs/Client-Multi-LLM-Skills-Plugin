@@ -4,7 +4,7 @@
 
 > 브랜치 네이밍·버전 컨벤션·티켓 키 추출 규칙 등 **컨벤션 정의는 `SKILL.md`**(및 generate-pr-auto SKILL.md)를 단일 출처로 참조합니다. 이 문서는 그 컨벤션을 적용하는 정확한 bash/MCP 명령과 검증 로직만 정의합니다.
 
-> **MCP 도구 표기**: 아래 예시는 팀 표준 alias 인 `mcp__jira__*`(예: `mcp__jira__getJiraIssue`·`mcp__jira__editJiraIssue`) 로 표기합니다 (다른 skill 들과 동일). 단, 실제 도구 id 는 개인 MCP 설정에 따라 다를 수 있으므로(예: `mcp__atlassian__*`), **0단계에서 `ToolSearch` 로 이름이 아닌 기능(이슈 조회/수정/전이 조회/전이/사용자 정보)으로 스키마를 로드**해 표기 불일치로 로드가 실패하지 않게 합니다. `cloudId` 는 사이트 호스트명(`teamblind.atlassian.net`)을 그대로 전달하고, 실패 시 `getAccessibleAtlassianResources` 로 조회합니다.
+> MCP 호출 예시는 [실행 환경 지침](execution-environment.md)에 따라 실제 연결의 스키마로 대응합니다.
 
 ---
 
@@ -18,35 +18,20 @@
 
 ## 워크플로우
 
-### 0단계 — 도구 사전 준비 (필수, 최우선 수행)
+### 0단계 — 도구 사전 준비
 
-워크플로우 진행 중 도구 호출 시점에 `InputValidationError` 또는 턴 조기 종료가 발생하지 않도록, **반드시 1단계 시작 전에** 사용할 도구들의 스키마 가용성을 확인합니다.
-
-1. 시스템 리마인더(`<system-reminder>`)에서 deferred tools 목록 확인
-2. 다음 도구가 deferred 상태(이름만 있고 스키마 미로드)라면 `ToolSearch` 로 일괄 로드:
-   - `AskUserQuestion` — 1·4·7단계 사용자 질문/확인용
-   - `mcp__jira__getJiraIssue` — 2단계 티켓 조회용
-   - `mcp__jira__getTransitionsForJiraIssue` · `mcp__jira__transitionJiraIssue` — 6·8단계 상태 전이용
-   - `mcp__jira__editJiraIssue` — 8단계 필드 수정용(담당자·Start Date·수정 버전)
-   - `mcp__jira__atlassianUserInfo` — 6단계 본인(담당자) account_id 조회용
-3. 이미 즉시 사용 가능한 도구는 다시 로드할 필요 없음
-
-```
-ToolSearch(query="select:AskUserQuestion,mcp__jira__getJiraIssue,mcp__jira__editJiraIssue,mcp__jira__getTransitionsForJiraIssue,mcp__jira__transitionJiraIssue,mcp__jira__atlassianUserInfo", max_results=10)
-```
-
-**원칙**: 0단계를 건너뛰면 사용자 확인 단계(7단계)에서 `AskUserQuestion` 호출 직전에 턴이 종료되어 워크플로우가 멈출 수 있습니다.
+[실행 환경 지침](execution-environment.md)에 따라 사용자 질문, 파일 읽기·Git 실행, Jira 이슈/현재 사용자 조회·필드 수정·전이 조회/실행 기능의 가용성을 확인합니다. 지금 필요한 기능만 준비하며, 선택적 단계의 도구는 그 단계를 선택했을 때 확인합니다.
 
 ### 1단계 — 티켓 키 확정
 
-- 인자(`/start-work CT-5208`) → 발화에서 정규식 `[A-Z]{2,}-\d+` 로 추출 (다중 매칭 시 마지막 우선, generate-pr-auto **티켓 키 추출 규칙** 과 동일)
-- 추출 실패 시 `AskUserQuestion`(또는 직접 질문)으로 티켓 키 입력받기
+- 인자(`start-work CT-5208`) → 발화에서 정규식 `[A-Z]{2,}-\d+` 로 추출 (다중 매칭 시 마지막 우선, generate-pr-auto **티켓 키 추출 규칙** 과 동일)
+- 추출 실패 시 사용자 질문(또는 직접 질문)으로 티켓 키 입력받기
 - 추출/입력값을 **반드시 사용자에게 확인** — Jira·Git 양쪽을 변경하므로 잘못된 키로 진행 방지
 
 ### 2단계 — 티켓 정보 조회
 
 ```
-mcp__jira__getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
+getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
   fields=["summary","issuetype","status","assignee","parent"], responseContentFormat="markdown")
 ```
 
@@ -66,9 +51,9 @@ VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr 
 
 - 파일/키 미발견 시 사용자에게 버전을 직접 확인 (release 베이스·수정 버전 산출에 필수)
 
-### 4단계 — 브랜치 타입 질문 (`AskUserQuestion`, 항상 수행)
+### 4단계 — 브랜치 타입 질문 (사용자 질문, 항상 수행)
 
-자동 추론하지 않고 **항상** 다음을 질문합니다 (한 번의 AskUserQuestion 에 복수 question 으로 묶어도 됨):
+자동 추론하지 않고 **항상** 다음을 질문합니다 (호스트가 허용하면 질문을 묶되 실제 질문 수·선택지 제한을 따름):
 
 1. **prefix**: `feature` / `debt` / `QA` / `bugfix` / `hotfix`
 2. **작업 유형**: `no-child(단독 작업)` / `하위 작업`
@@ -79,7 +64,7 @@ VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr 
 
 **부모 기반 베이스 추천 (Jira subtask일 때)** — `SKILL.md` 의 **Jira 부모 기반 베이스 추천(subtask)** 규칙 적용:
 
-- 2단계에서 `issuetype.subtask == true` 또는 `parent` 가 있으면, 베이스 입력 질문의 `AskUserQuestion` **옵션에 부모 기반 추천 후보를 포함**합니다:
+- 2단계에서 `issuetype.subtask == true` 또는 `parent` 가 있으면, 베이스 입력 질문의 사용자 질문 **옵션에 부모 기반 추천 후보를 포함**합니다:
   - 추천 베이스: `<prefix>/${PARENT_KEY}/root` (`PARENT_KEY` = `parent.key`)
   - 옵션 설명에 **결과 브랜치 `<prefix>/${PARENT_KEY}/<티켓키>`** 를 함께 표기
 - **원격에 root 가 없어도 추천 후보로 노출**하되, 옵션 설명에 원격 존재 여부(`git ls-remote --heads origin <후보>`)를 표시하고 "미존재 시 선택하면 5단계에서 중단됨"을 명시 — **추천이 존재 검증을 우회하지 않음**
@@ -119,7 +104,7 @@ git rev-parse --verify "origin/${BASE_BRANCH}" 2>/dev/null \
 **하위 작업 — 입력 베이스가 미존재할 때 (원격·로컬 모두 없음)**: 베이스 형태에 따라 분기합니다.
 
 - **베이스가 부모 root 형태(`<prefix>/<부모티켓>/root`, suffix == `root`)면 → root 생성 플로우 제안 (즉시 중단 아님)**:
-  - `AskUserQuestion` 으로 **어떤 release 브랜치에서 root 를 생성할지** 묻습니다. 후보 = `release/${VERSION}`(기본) + 최근 `release/*` 브랜치 몇 개 + "생성 안 함(중단)". (목록에 없으면 "기타"로 직접 입력)
+  - 사용자 질문으로 **어떤 release 브랜치에서 root 를 생성할지** 묻습니다. 후보 = `release/${VERSION}`(기본) + 최근 `release/*` 브랜치 몇 개 + "생성 안 함(중단)". (목록에 없으면 "기타"로 직접 입력)
 
     ```bash
     # release 후보 나열 (최근 갱신 순 상위 몇 개)
@@ -131,7 +116,7 @@ git rev-parse --verify "origin/${BASE_BRANCH}" 2>/dev/null \
 - **그 외(부모 root 형태가 아닌 임의 베이스)가 미존재면 → 즉시 중단(abort)**: 임의 브랜치는 자동 생성하지 않습니다. **이후 단계(Jira 변경·브랜치 생성)를 일절 수행하지 않고** 다음 메시지로 안내:
   > "베이스 브랜치 `<BASE_BRANCH>` 가 존재하지 않습니다. 베이스 브랜치를 확인해 주세요."
   - 이 시점은 아직 어떤 Jira·Git 변경도 일어나기 전(6~9단계 이전)이므로, 중단해도 부작용이 남지 않습니다.
-  - 재시도하려면 올바른 베이스로 `/start-work` 를 다시 호출하도록 안내 (자동으로 다른 베이스를 추정하지 않음).
+  - 재시도하려면 올바른 베이스로 `start-work` 를 다시 호출하도록 안내 (자동으로 다른 베이스를 추정하지 않음).
 - **no-child** 의 `origin/release/${VERSION}` 미존재 시: 버전/릴리즈 브랜치 존재를 사용자에게 확인 후 진행 여부 결정 (즉시 중단은 아님 — 버전 오타/패치 가능성)
 - 동일명 브랜치가 이미 존재(로컬/원격)하면 9단계에서 생성 대신 체크아웃으로 처리 (멱등성)
 
@@ -145,7 +130,7 @@ git rev-parse --verify "origin/${BASE_BRANCH}" 2>/dev/null \
 - "본인"은 하드코딩하지 않고 현재 사용자 `account_id` 를 조회:
 
 ```
-mcp__jira__atlassianUserInfo()
+atlassianUserInfo()
 # 응답 account_id 를 8단계 assignee 값으로 사용
 ```
 
@@ -174,7 +159,7 @@ git rev-parse --verify "origin/<prefix>/${PARENT_TICKET}/root" 2>/dev/null \
 **등록 확인** (대상 티켓 공통): 해당 버전이 Jira 프로젝트 버전 목록에 있어야 세팅 가능. 등록 여부 전용 조회 1회:
 
 ```
-mcp__jira__getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
+getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
   fields=["fixVersions"], expand="editmeta")
 # 응답 editmeta.fields.fixVersions.allowedValues 에서 name == ${VERSION} 존재 여부 확인
 ```
@@ -198,14 +183,14 @@ mcp__jira__getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓
   2) 없으면 "전진" transition 하나를 골라 실행하고 다시 조회:
      - 절대 고르지 말 것: to.statusCategory.key == "done"(닫기·이슈아님 등 종료) / to.id 가 현재와 같은 Backlog 되돌리기
      - 우선 고를 것: to.statusCategory.key == "indeterminate"(진행 중) 또는 이름이 "진행결정 완료"/"개발 시작" 처럼 개발로 전진하는 transition
-  3) 전진 후보가 0개거나 2개 이상이라 모호하면 → 자동 진행 금지, `AskUserQuestion` 으로 사용자에게 선택/스킵 확인
+  3) 전진 후보가 0개거나 2개 이상이라 모호하면 → 자동 진행 금지, 사용자에게 선택/스킵 확인
 ```
 
 - 위 루프로도 In Progress 에 못 닿으면(워크플로우 제약) 경고하고 상태 전이만 건너뜀 — 필드·브랜치 생성은 계속 진행
 - 6단계에서는 첫 조회로 "직접 도달 가능 / 멀티홉 필요"를 판별만 하고, 실제 전이 실행은 7단계 확인 후 8단계에서 수행
 - **`CREATE_ROOT=true` 면 담당자·상태(In Progress) 적용 대상이 자식·부모 둘 다**입니다 — 부모는 8단계 (c) 에서 동일한 도달 알고리즘으로 전이하고 미할당 시 본인 할당 (Start Date·수정 버전은 부모만)
 
-### 7단계 — 최종 확인 (`AskUserQuestion`, 필수)
+### 7단계 — 최종 확인 (사용자 질문, 필수)
 
 Jira·Git 을 변경하기 직전, 세팅 내용을 요약해 **한 번** 확인받습니다.
 
@@ -233,7 +218,7 @@ Jira·Git 을 변경하기 직전, 세팅 내용을 요약해 **한 번** 확인
 **(a) 현재(자식/단독) 티켓 필드 수정** — 담당자·Start Date·수정 버전을 한 번에 set (각 값은 6단계 산출 결과; 생략 대상은 fields 에서 제외):
 
 ```
-mcp__jira__editJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
+editJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
   fields={
     "assignee": { "accountId": "<본인 account_id>" }, // 미할당일 때만. 이미 할당돼 있으면 키 제외
     "customfield_10250": "2026-06-18",            // Start Date (생략 대상이면 키 제외 — CREATE_ROOT면 자식은 생략)
@@ -247,9 +232,9 @@ mcp__jira__editJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티�
 
 ```
 # 예: 백로그에서 시작하는 CT 티켓 (2홉)
-mcp__jira__transitionJiraIssue(... transition={ "id": "<진행결정 완료 id>" })   # 1홉: 10000 → 1
+transitionJiraIssue(... transition={ "id": "<진행결정 완료 id>" })   # 1홉: 10000 → 1
 # getTransitionsForJiraIssue 재조회 → to.id == "3" transition 확인
-mcp__jira__transitionJiraIssue(... transition={ "id": "<개발 시작 id>" })       # 2홉: 1 → 3 (In Progress)
+transitionJiraIssue(... transition={ "id": "<개발 시작 id>" })       # 2홉: 1 → 3 (In Progress)
 ```
 
 - transition id 는 매 홉 재조회로 확보 (하드코딩 금지) — 위 id 는 예시값
@@ -262,18 +247,18 @@ mcp__jira__transitionJiraIssue(... transition={ "id": "<개발 시작 id>" })   
 
 ```
 # 1) 부모 현재값 확인 (멱등 판정용)
-mcp__jira__getJiraIssue(... issueIdOrKey="${PARENT_TICKET}",
+getJiraIssue(... issueIdOrKey="${PARENT_TICKET}",
   fields=["customfield_10250","fixVersions","assignee","status"])
 # 2) 필드 set — 비어 있는 항목만 (기존 값 클로버 방지)
-mcp__jira__editJiraIssue(... issueIdOrKey="${PARENT_TICKET}",
+editJiraIssue(... issueIdOrKey="${PARENT_TICKET}",
   fields={
     "assignee": { "accountId": "<본인 account_id>" }, // 부모 assignee == null 일 때만
     "customfield_10250": "2026-06-18",          // 부모 Start Date 가 비어 있을 때만
     "fixVersions": [ { "name": "${VERSION}" } ]  // 부모 fixVersions 가 비어 있을 때만 (등록 버전 확인 동일 적용)
   })
 # 3) 부모 상태 전이 — In Progress(개발) 까지 (b) 의 멀티홉 도달 알고리즘 동일 적용 (이미 In Progress 면 생략)
-mcp__jira__getTransitionsForJiraIssue(... issueIdOrKey="${PARENT_TICKET}")  # 매 홉 재조회
-mcp__jira__transitionJiraIssue(... issueIdOrKey="${PARENT_TICKET}", transition={ "id": "<...>" })
+getTransitionsForJiraIssue(... issueIdOrKey="${PARENT_TICKET}")  # 매 홉 재조회
+transitionJiraIssue(... issueIdOrKey="${PARENT_TICKET}", transition={ "id": "<...>" })
 ```
 
 - 부모도 **미할당일 때만 본인 할당**, **이미 In Progress 면 전이 생략**, **이미 채워진 필드는 건너뜀** (멱등, 타 작업자 값 보존).
@@ -320,9 +305,9 @@ fi                                                              # --no-track: up
 
 - `origin/<BASE_BRANCH>` 가 없고 로컬에만 있으면 로컬 베이스로 폴백하되 경고
 - push 실패(권한/네트워크) 시: 로컬 브랜치는 생성된 상태이므로 그 사실과 함께 수동 push 안내
-- 완료 후 브랜치명·베이스·반영된 Jira 변경 요약을 안내 (이어서 10단계 또는 `/generate-pr-auto` 로 PR 생성 가능)
+- 완료 후 브랜치명·베이스·반영된 Jira 변경 요약을 안내 (이어서 10단계 또는 `generate-pr-auto` 로 PR 생성 가능)
 
-### 10단계 — 티켓 본문 기반 작업 시작 제안 (`AskUserQuestion`)
+### 10단계 — 티켓 본문 기반 작업 시작 제안 (사용자 질문)
 
 환경 세팅(브랜치 + Jira)이 끝난 직후, **티켓 본문(description) 내용을 기반으로 실제 작업을 바로 시작할지** 물어봅니다. (환경만 세팅하고 끝낼 수도 있으므로 항상 질문 — 자동 시작 금지)
 
@@ -331,13 +316,13 @@ fi                                                              # --no-track: up
 2단계에서 `description` 을 받지 않았다면 여기서 조회합니다:
 
 ```
-mcp__jira__getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
+getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓키>",
   fields=["summary","description"], responseContentFormat="markdown")
 ```
 
 - 본문이 비어 있으면(설명 없음) 그 사실을 알리고, summary 만으로 진행할지 묻습니다.
 
-**2. 작업 시작 여부 질문 (`AskUserQuestion`)**
+**2. 작업 시작 여부 질문 (사용자 질문)**
 
 본문을 1~3줄로 요약해 보여준 뒤 질문합니다:
 
@@ -378,7 +363,7 @@ mcp__jira__getJiraIssue(cloudId="teamblind.atlassian.net", issueIdOrKey="<티켓
 
 ## 주의사항
 
-- **0단계(도구 사전 준비) 누락 금지** — 1단계 시작 전 deferred 도구 스키마 로드 확인
+- **0단계(도구 사전 준비)** — 실행에 필요한 기능의 가용성을 확인하고, 선택적 기능은 해당 단계에서 확인합니다.
 - Jira transition id 는 현재 상태마다 다르므로 **하드코딩 금지** — 항상 `getTransitionsForJiraIssue` 로 동적 조회
 - Start Date·수정 버전 **소유 규칙**을 빠뜨리지 말 것: 하위 작업은 자식 Start Date 생략(부모 소유), `root` 사전 존재 시 부모 미터치 / **CREATE_ROOT 시 Start Date·수정 버전을 부모 티켓에 설정하고 자식은 둘 다 생략**
 - `fixVersions` 는 배열 set 연산임에 유의 (기존 값 보존 필요 시 합쳐 전달)

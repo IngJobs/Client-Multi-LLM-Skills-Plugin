@@ -1,11 +1,11 @@
 ---
 name: generate-pr-auto
-description: 현재 브랜치 기준으로 베이스를 추론하고 Jira 티켓을 연동해 팀 규격 Draft PR을 자동 생성(work). QA 완료된 feature/<티켓>/root 를 release 로 합류시키는 Complete PR(complete intent)도 동일 흐름으로 생성. PR 본문에 드래그앤드롭으로 올라간 미디어 링크를 ScreenShot 섹션 표로 재구성하는 기능 포함. 생성 전 마일스톤 설정 여부를 질문해 선택 시 GitHub 마일스톤을 부착하는 절차 포함. Teamblind Android PR 컨벤션(브랜치 네이밍·베이스 추론·제목/본문 포맷·라벨 매핑·작성 규칙)도 정의. "현재 브랜치 PR 만들어줘"·"draft PR 생성"·"complete PR 만들어줘"·"QA 끝났으니 릴리즈에 머지"·"ScreenShot 표 정리해줘"·"스크린샷 표로 재구성" 요청이나 PR 컨벤션 관련 질문 시 사용.
+description: 현재 브랜치 기준으로 베이스를 추론하고 Jira 티켓을 연동해 팀 규격 Draft PR을 자동 생성(work). QA 완료된 feature/티켓/root 를 release 로 합류시키는 Complete PR(complete intent)도 동일 흐름으로 생성. PR 본문에 드래그앤드롭으로 올라간 미디어 링크를 ScreenShot 섹션 표로 재구성하는 기능 포함. 생성 전 마일스톤 설정 여부를 질문해 선택 시 GitHub 마일스톤을 부착하는 절차 포함. Teamblind Android PR 컨벤션(브랜치 네이밍·베이스 추론·제목/본문 포맷·라벨 매핑·작성 규칙)도 정의. "현재 브랜치 PR 만들어줘"·"draft PR 생성"·"complete PR 만들어줘"·"QA 끝났으니 릴리즈에 머지"·"ScreenShot 표 정리해줘"·"스크린샷 표로 재구성" 요청이나 PR 컨벤션 관련 질문 시 사용.
 ---
 
 # Teamblind Android — 자동 PR 생성
 
-`/generate-pr-auto` 로 직접 호출하거나 "현재 브랜치 PR 만들어줘" 류 요청 시 자동 발동되는 스킬입니다. 자동 PR 생성에 필요한 **팀 컨벤션·포맷**(이 문서)과 **실행 절차**를 정의합니다.
+`generate-pr-auto` 를 지정해 요청하거나 "현재 브랜치 PR 만들어줘" 류 요청 시 자동 발동되는 스킬입니다. 자동 PR 생성에 필요한 **팀 컨벤션·포맷**(이 문서)과 **실행 절차**를 정의합니다.
 
 이 스킬은 두 가지 **intent** 를 다룹니다:
 - **work** (기본) — 현재 작업 브랜치 기준으로 베이스를 추론하고 4섹션 본문의 작업용 PR 생성
@@ -17,12 +17,14 @@ description: 현재 브랜치 기준으로 베이스를 추론하고 Jira 티켓
 
 ---
 
+실행 전에 [실행 환경 지침](references/execution-environment.md)을 읽고, 현재 환경에 맞는 도구·질문·스킬 참조 방식을 적용합니다.
+
 ## PR intent 판별 규칙 (work / complete)
 
 | 입력/상태 | intent |
 |---|---|
-| `/generate-pr-auto complete` 인자, 또는 "complete PR"·"QA 완료"·"릴리즈에 머지" 의도 | **complete** |
-| 현재 브랜치가 `feature/<티켓>/root` 인데 의도가 모호 | `AskUserQuestion` 으로 work/complete 확인 |
+| `generate-pr-auto complete` 인자, 또는 "complete PR"·"QA 완료"·"릴리즈에 머지" 의도 | **complete** |
+| 현재 브랜치가 `feature/<티켓>/root` 인데 의도가 모호 | 사용자 질문으로 work/complete 확인 |
 | 그 외 (기본) | **work** |
 
 > intent 결정 후, **work 와 complete 의 차이는 아래 "Complete intent 분기" 표에 정의된 항목(베이스 결정·제목 태그·타입 라벨·본문)뿐**입니다. 나머지 절차(도구 준비·Jira 조회·사용자 확인 후 생성·Draft→Ready)는 공통입니다.
@@ -88,7 +90,7 @@ release 브랜치 이름은 `app/config/version.properties` 의 `version.name` �
 
 > prefix 가 위 화이트리스트(`feature`/`Feature`/`qa`/`QA`/`debt`/`Debt`/`bugfix`/`Bugfix`)에 없으면 사용자에게 베이스를 직접 묻습니다.
 
-> 사용자가 인자로 베이스를 명시한 경우(`/generate-pr-auto <base>`) 자동 추론을 건너뜁니다.
+> 사용자가 인자로 베이스를 명시한 경우(`generate-pr-auto <base>`) 자동 추론을 건너뜁니다.
 
 ---
 
@@ -318,7 +320,7 @@ PR **생성 시점**에는 placeholder(`_게시자 직접 등록_`)를 그대로
 
 1. **수정 직전 실제 본문 필수 재읽기** — 반드시 `gh pr view --json body` 로 현재 본문을 읽고, **그 본문만을 기반으로** 재조립합니다. 과거 생성본(`PR_DESCRIPTION_*.md`)·이전 재조립 파일·기억하고 있는 본문으로 어떤 섹션도 재구성하지 않습니다 (사용자의 웹 수정분이 유실됨)
 2. **요청 범위 밖 보존** — 사용자가 요청한 변경 범위 밖의 내용(사용자가 추가한 단락·링크·첨부·서식 변경 포함)은 **한 글자도 지우거나 고치지 않고** 그대로 보존합니다
-3. **전면 재작성 시 사용자 추가분 확인** — "본문 전면 업데이트" 요청이어도, 현재 본문에 스킬이 생성하지 않은 사용자 추가분이 감지되면 해당 부분을 인용해 보존/대체 여부를 `AskUserQuestion` 으로 확인한 뒤 진행합니다
+3. **전면 재작성 시 사용자 추가분 확인** — "본문 전면 업데이트" 요청이어도, 현재 본문에 스킬이 생성하지 않은 사용자 추가분이 감지되면 해당 부분을 인용해 보존/대체 여부를 사용자 질문으로 확인한 뒤 진행합니다
 
 ---
 
@@ -343,7 +345,7 @@ PR **생성 시점**에는 placeholder(`_게시자 직접 등록_`)를 그대로
 
 ### Draft → Ready 플로우 (work / complete 공통)
 
-PR은 항상 `--draft` 로 생성합니다(리뷰어 자동 알림 방지). 생성 직후 `AskUserQuestion` 으로 "지금 review 를 open(Ready for review) 할까요?" 를 물어:
+PR은 항상 `--draft` 로 생성합니다(리뷰어 자동 알림 방지). 생성 직후 사용자 질문으로 "지금 review 를 open(Ready for review) 할까요?" 를 물어:
 - **지금 open** → `gh pr ready <PR번호>` 로 Draft 해제
 - **Draft 유지** → PR 링크만 안내하고 종료 (기존 work 동작과 동일)
 
@@ -364,32 +366,32 @@ PR 본문 "주요 변경사항" 작성 시 변경 파일을 다음 아키텍처 
 
 ## 실행 절차
 
-`/generate-pr-auto` 호출 또는 "현재 브랜치 PR 만들어줘" 요청 시 아래 0~16단계를 순서대로 수행합니다. **각 단계의 정확한 bash/MCP/gh 명령과 검증 로직은 [references/workflow.md](references/workflow.md) 를 참조하세요.**
+`generate-pr-auto` 호출 또는 "현재 브랜치 PR 만들어줘" 요청 시 아래 0~16단계를 순서대로 수행합니다. **각 단계의 정확한 bash/MCP/gh 명령과 검증 로직은 [references/workflow.md](references/workflow.md) 를 참조하세요.**
 
 | 단계 | 내용 |
 |---|---|
-| 0 | 도구 사전 준비 — `AskUserQuestion`·Jira MCP·GitHub MCP 스키마 로드 (`ToolSearch`) |
+| 0 | 도구 사전 준비 — 실행 환경에 따라 필요한 질문·조회·실행 기능의 가용성 확인 |
 | 1 | 현재 브랜치 감지 (`git rev-parse --abbrev-ref HEAD`) |
 | 1.5 | **intent 판별** — 위 **PR intent 판별 규칙** 으로 work / complete 결정 |
 | 2 | 베이스 브랜치 결정 — work: **베이스 추론 규칙**(merge-base) / complete: `release/<version.name>` 고정 |
 | 3 | Jira 티켓 키 추출 — 위 **Jira 티켓 키 추출 규칙** |
-| 4 | Jira 정보 조회 (`mcp__jira__get-jira-issue`) — 실패 시 커밋 메시지로 graceful degrade |
+| 4 | Jira 정보 조회 (`getJiraIssue`) — 실패 시 커밋 메시지로 graceful degrade |
 | 5 | PR 타입 결정 — work: **prefix → 제목 태그/라벨 매핑** / complete: `TITLE_TAG=Complete` |
 | 6 | (work 만) Diff 분석 (`git diff --stat`·`--name-status`, `git log`) — 위 **변경 파일 분류 기준** — complete 는 이 단계를 건너뛰고 7단계로 |
 | 7 | PR 제목 생성 — 위 **PR 제목 포맷** (complete 는 `[Complete][<티켓>] <summary>`) |
 | 8 | PR 본문 생성 — work: **4섹션 포맷** / complete: **한 줄 본문(md 파일 미생성)** |
 | 9 | (work 만) `PR_DESCRIPTION_<티켓키>.md` 파일 저장 — complete 는 파일 생성 안 함 |
-| 10 | **마일스톤 설정 여부 질문(`AskUserQuestion`)** — 예: 열린 마일스톤 목록 조회 후 선택 → 11단계에서 `--milestone` 부착 / 아니오: 생략 (work/complete 공통) |
-| 11 | **사용자 확인(`AskUserQuestion`) 후** `gh pr create --draft` 로 Draft PR 생성 — work: 라벨 부착 / complete: `--label "TYPE_COMPLETE"` 만, `--body` 한 줄 직접 |
-| 12 | (work 만) **ScreenShot 업로드 확인(`AskUserQuestion`)** — "PR 본문에 스크린샷/동영상을 업로드하시면 표로 컨버팅해 드립니다. 업로드 하셨나요?" → 예: 본문 미디어 링크를 표로 컨버팅(`gh pr edit`) 후 13단계로 / 아니오: 그대로 13단계로 |
-| 13 | (work 만) **코드리뷰 수행 여부 질문(`AskUserQuestion`)** → 예: `review-pr` 실행(로컬 리포트 `pr_<N>_code_review.md`) → 리포트 미리보기 후 **게시 확인(`AskUserQuestion`)** → finding 을 `path:line` 인라인 코멘트로 게시 → 14단계로 / 아니오: 바로 14단계로 — complete 는 이 단계 없음 (게시 도구·`event=COMMENT` 고정·실패 처리 상세는 [workflow.md](references/workflow.md) 13단계 정본 참조) |
-| 14 | **review open 여부 질문(`AskUserQuestion`)** → open 선택 시 `gh pr ready <PR번호>` (work/complete 공통) |
+| 10 | **마일스톤 설정 여부 질문(사용자 질문)** — 예: 열린 마일스톤 목록 조회 후 선택 → 11단계에서 `--milestone` 부착 / 아니오: 생략 (work/complete 공통) |
+| 11 | **사용자 확인(사용자 질문) 후** `gh pr create --draft` 로 Draft PR 생성 — work: 라벨 부착 / complete: `--label "TYPE_COMPLETE"` 만, `--body` 한 줄 직접 |
+| 12 | (work 만) **ScreenShot 업로드 확인(사용자 질문)** — "PR 본문에 스크린샷/동영상을 업로드하시면 표로 컨버팅해 드립니다. 업로드 하셨나요?" → 예: 본문 미디어 링크를 표로 컨버팅(`gh pr edit`) 후 13단계로 / 아니오: 그대로 13단계로 |
+| 13 | (work 만) **코드리뷰 수행 여부 질문(사용자 질문)** → 예: `review-pr` 실행(로컬 리포트 `pr_<N>_code_review.md`) → 리포트 미리보기 후 **게시 확인(사용자 질문)** → finding 을 `path:line` 인라인 코멘트로 게시 → 14단계로 / 아니오: 바로 14단계로 — complete 는 이 단계 없음 (게시 도구·`event=COMMENT` 고정·실패 처리 상세는 [workflow.md](references/workflow.md) 13단계 정본 참조) |
+| 14 | **review open 여부 질문(사용자 질문)** → open 선택 시 `gh pr ready <PR번호>` (work/complete 공통) |
 | 15 | (work 만) 임시 `PR_DESCRIPTION_*.md` 정리 — complete 는 해당 없음 |
 | 16 | **(재실행·후속 요청용)** ScreenShot 표 재구성 — 12에서 "아니오" 후 늦은 업로드·재시도·추가 병합 시 "ScreenShot 표 정리해줘" 요청으로 단독 수행 (`gh pr view` → `gh pr edit`) |
 
-> 11단계는 외부 시스템에 영향을 주므로 `AskUserQuestion` 사용자 확인 없이는 절대 PR을 생성하지 않으며, PR은 항상 `--draft` 로 생성합니다. Draft 해제(14단계)는 사용자가 "지금 open" 을 선택한 경우에만 수행합니다.
+> 11단계는 외부 시스템에 영향을 주므로 사용자 확인 없이는 절대 PR을 생성하지 않으며, PR은 항상 `--draft` 로 생성합니다. Draft 해제(14단계)는 사용자가 "지금 open" 을 선택한 경우에만 수행합니다.
 >
-> 13단계의 인라인 코멘트 게시도 외부 시스템 쓰기이므로, **리뷰 수행 여부 질문과 게시 직전 확인** 두 번의 `AskUserQuestion` 승인 없이는 절대 게시하지 않습니다. 게시는 `event=COMMENT` 로만 수행하며 PR 을 `APPROVE`/`REQUEST_CHANGES` 로 바꾸지 않습니다. `review-pr` 스킬 자체는 어떤 경우에도 게시하지 않으며(read-only), 게시 책임은 본 스킬에만 있습니다.
+> 13단계의 인라인 코멘트 게시도 외부 시스템 쓰기이므로, **리뷰 수행 여부 질문과 게시 직전 확인** 두 번의 사용자 질문 승인 없이는 절대 게시하지 않습니다. 게시는 `event=COMMENT` 로만 수행하며 PR 을 `APPROVE`/`REQUEST_CHANGES` 로 바꾸지 않습니다. `review-pr` 스킬 자체는 어떤 경우에도 게시하지 않으며(read-only), 게시 책임은 본 스킬에만 있습니다.
 >
 > 13단계(코드리뷰)는 **work intent 한정**입니다. complete intent 와 Sync PR(별도 스킬 [generate-sync-pr](../generate-sync-pr/SKILL.md))에는 이 단계가 **적용되지 않습니다** — 둘 다 코드 변경 리뷰 대상이 아니므로 Draft 생성 후 바로 review open 질문으로 진행합니다.
 
@@ -403,8 +405,8 @@ PR 본문 "주요 변경사항" 작성 시 변경 파일을 다음 아키텍처 
 - "draft PR 생성해줘"
 - "complete PR 만들어줘" / "QA 끝났으니 릴리즈에 머지 PR" (complete intent)
 - "ScreenShot 표 정리해줘" / "스크린샷 표로 재구성" (PR 본문 미디어 링크 → 표 변환, 16단계)
-- "(PR 생성 직후) 코드리뷰해서 PR에 코멘트 달아줘" / "(생성 흐름 안에서) 리뷰 결과 인라인 코멘트로 게시" (Draft 생성 후 `review-pr` 실행 → 인라인 코멘트 게시, 13단계) — **이미 존재하는 PR 만 단독 리뷰**하려면 본 스킬이 아니라 [`/review-pr <PR번호>`](../review-pr/SKILL.md) 사용
-- `/generate-pr-auto` 또는 `/generate-pr-auto complete` 직접 호출 시
+- "(PR 생성 직후) 코드리뷰해서 PR에 코멘트 달아줘" / "(생성 흐름 안에서) 리뷰 결과 인라인 코멘트로 게시" (Draft 생성 후 `review-pr` 실행 → 인라인 코멘트 게시, 13단계) — **이미 존재하는 PR 만 단독 리뷰**하려면 본 스킬이 아니라 [`review-pr <PR번호>`](../review-pr/SKILL.md) 사용
+- `generate-pr-auto` 또는 `generate-pr-auto complete` 명시 요청 시
 - 베이스 브랜치 자동 추론 / 네이밍 컨벤션 관련 질문
 - PR 제목/본문 포맷, 라벨 매핑 관련 질문
 

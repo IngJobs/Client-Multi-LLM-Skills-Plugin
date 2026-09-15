@@ -2,7 +2,7 @@
 
 `review-pr` 스킬이 따르는 PR 코드 리뷰의 **단계별 실행 절차**입니다. GitHub PR 정보를 수집하고, 변경 파일을 계층별로 나눠 분석한 뒤, 팀 규격의 한국어 마크다운 리뷰 리포트를 생성합니다.
 
-> 채점 루브릭·우선순위(P0/P1/P2)·리포트 포맷·리뷰 항목의 판정 기준은 모두 **`SKILL.md`** 를 단일 출처로 참조합니다. 이 문서는 그 기준을 적용하는 정확한 `gh`/Bash 명령과 컨텍스트 격리 로직만 정의합니다.
+> 채점 루브릭·우선순위(P0/P1/P2)·리포트 포맷·리뷰 항목의 판정 기준은 모두 **`SKILL.md`** 를 단일 출처로 참조합니다. 이 문서는 그 기준을 적용하는 정확한 `gh`/셸 명령과 컨텍스트 격리 로직만 정의합니다.
 
 ---
 
@@ -23,8 +23,8 @@
 
 ### 0단계 — 도구 사전 준비
 
-- `gh`(GitHub CLI)는 Bash로 호출하므로 별도 스키마 로드가 불필요합니다.
-- PR 설명이 부족해 작성자에게 맥락 확인이 필요할 수 있으면, `AskUserQuestion` 이 deferred 상태인지 확인하고 필요 시 `ToolSearch(query="select:AskUserQuestion")` 로 로드합니다.
+- `gh`(GitHub CLI)는 셸로 호출하므로 별도 스키마 로드가 불필요합니다.
+- 사용자 질문과 필요한 조회 기능은 [실행 환경 지침](execution-environment.md)에 따라 준비합니다.
 - `gh` 설치·인증 확인:
 
 ```bash
@@ -39,18 +39,13 @@ gh auth status
 
 로드 대상 (총 4개):
 
-1. **3개 형제 스킬의 SKILL.md 본문** — 같은 `.claude/skills/` 에 설치돼 있으므로 `Read` 로 본문을 읽습니다(또는 `Skill` 도구로 호출). 리뷰 실행 cwd가 대상 저장소가 아닐 수 있으니 경로를 추정해 직접 읽는 쪽이 견고합니다.
+1. **3개 형제 스킬의 SKILL.md 본문** — 호스트가 제공한 설치 목록과 실제 경로를 확인하고, 실행 환경의 스킬 참조 절차로 본문을 읽습니다. 스킬 이름만 발견한 것을 본문 로딩으로 취급하지 않습니다.
    - `android-arch-patterns` — 계층·의존성 방향·Hilt DI·고급 패턴(Behavior/Action/Global Event/DataStore/Multi-Source)
    - `android-code-quality` — SOLID/네이밍/`runSuspendCatching`/`@Stable`·Strong Skipping/상태관리/Compose 최적화
    - `android-data-models` — Entity → VO → UiState 변환 계층·모델 타입별 역할·Gson(nullable+기본값)·`@Stable` 규칙
-2. **대상 저장소 루트의 `CLAUDE.md`** — 아키텍처/패키지 구조/프로젝트 컨벤션 개요. 같은 저장소 cwd에서 실행하면 자동 로드될 수 있으나, **다른 cwd에서 실행 시 자동 로드되지 않으므로** 명시적으로 `Read` 합니다.
+2. **대상 저장소의 프로젝트 지침** — 현재 호스트의 지침 적용 범위와 우선순위를 확인합니다. 다른 저장소를 리뷰한다면 해당 저장소의 관련 지침을 명시적으로 읽습니다.
 
-```bash
-# 형제 스킬·CLAUDE.md 위치 확인 (대상 저장소 루트를 <REPO> 로)
-ls "$HOME"/.claude/skills/{android-arch-patterns,android-code-quality,android-data-models}/SKILL.md 2>/dev/null
-ls <REPO>/.claude/skills/{android-arch-patterns,android-code-quality,android-data-models}/SKILL.md 2>/dev/null
-ls <REPO>/CLAUDE.md 2>/dev/null
-```
+읽은 스킬과 프로젝트 지침의 실제 경로를 조사 기록에 남깁니다. 설치 경로를 발견하지 못하거나 접근이 거부되면 그 사유를 기록하며, 미설치로 단정하거나 권한을 우회하지 않습니다.
 
 - **미설치/부재 시 폴백**: 해당 SSOT가 없으면 그 관점은 본 스킬의 인라인 체크리스트로만 판정하고, **리포트에 "SSOT 미참조" 한계를 명시**합니다(워크플로우는 멈추지 않음). 단, "찾지 않아서 없음"과 "설치돼 있는데 안 읽음"은 다릅니다 — 설치돼 있으면 반드시 읽습니다.
 
@@ -73,11 +68,11 @@ gh pr checks <N>
 이미 달린 리뷰 코멘트/승인 이력을 가져와 **중복 지적을 피하고 미해결 코멘트를 리포트에 반영**합니다. 작은 payload라 컨텍스트 부담이 없습니다.
 
 ```
-mcp__github__get_pull_request_comments(owner=<owner>, repo=<repo>, pullNumber=<N>)
-mcp__github__get_pull_request_reviews(owner=<owner>, repo=<repo>, pullNumber=<N>)
+get_pull_request_comments(owner=<owner>, repo=<repo>, pullNumber=<N>)
+get_pull_request_reviews(owner=<owner>, repo=<repo>, pullNumber=<N>)
 ```
 
-- 이 도구들은 deferred 상태이므로 호출 전 `ToolSearch(query="select:mcp__github__get_pull_request_comments,mcp__github__get_pull_request_reviews")` 로 스키마를 로드합니다.
+- 사용자 질문과 필요한 조회 기능은 [실행 환경 지침](execution-environment.md)에 따라 준비합니다.
 - `owner`/`repo`/`<N>` 은 `gh repo view --json owner,name` 또는 현재 리뷰 대상 PR 정보에서 가져옵니다.
 - **활용**: 기존 코멘트에서 이미 지적된 항목은 리포트에서 중복 작성하지 않고, 미해결(unresolved) 코멘트는 액션 아이템/우선순위에 반영합니다.
 - **MCP 미가용 시 생략**: 헤드리스/cron 등에서 GitHub MCP 서버가 없으면 이 보강 단계는 건너뛰고 `gh` 기반 정보만으로 리뷰를 진행합니다(워크플로우는 멈추지 않음). diff 분석 경로는 항상 `gh` 를 사용합니다.
@@ -118,7 +113,7 @@ gh pr diff <N> -- <그룹 내 경로...> ':(exclude)**/build/**' ':(exclude)*.lo
 
 ### 3단계 — 다차원 판정 (8개 관점)
 
-2~2.5단계 발견을 **SKILL.md 의 8개 관점**(아키텍처·코드품질·성능·가독성·재사용성·버그가능성·테스트·보안)으로 판정합니다. 각 관점의 스코프·판정 기준은 SKILL.md 표가 지정한 SSOT(CLAUDE.md / `android-arch-patterns` / `android-code-quality` / `android-data-models`)를 따릅니다 — 여기 재서술하지 않습니다.
+2~2.5단계 발견을 **SKILL.md 의 8개 관점**(아키텍처·코드품질·성능·가독성·재사용성·버그가능성·테스트·보안)으로 판정합니다. 각 관점의 스코프·판정 기준은 SKILL.md 표가 지정한 SSOT(프로젝트 지침 / `android-arch-patterns` / `android-code-quality` / `android-data-models`)를 따릅니다 — 여기 재서술하지 않습니다.
 
 - **finding 분류**: 각 이슈를 8개 관점 중 하나에 귀속시키고 제목에 P0/P1/P2 태그, 한 관점 안에서 P0 → P1 → P2 순(별도 prose 요약 섹션 없음).
 - **점수**: 8개 관점 각 0~5점 → 합계(≤40) ÷ 4 = 종합 점수(10점). 헤더에 종합 점수 + 항목별 점수표 표기. 작성 형식은 SKILL.md 의 **리포트 포맷·finding 작성 구조**를 따른다.
@@ -145,7 +140,7 @@ gh pr diff <N> -- <그룹 내 경로...> ':(exclude)**/build/**' ':(exclude)*.lo
 7. **외부 변경 0건**: 리뷰 과정에서 commit·push·`gh pr review`·`gh pr comment`·리퀘스트 체인지 등 외부 변경을 일절 수행하지 않았는가.
 8. **통합·완전성 점검**: 2.5단계의 교차 계층 흐름 따라가기와 *"목록 밖 위험은?"* 완전성 반사를 최소 1회 수행했고, 그 결과(상호작용/고유 위험 발견 또는 "탐색했으나 추가 없음" 근거)가 리포트에 반영됐는가. 단편 지적 모음으로 끝나지 않았는가.
 9. **컨벤션 대조(SSOT) 게이트** *(미충족 시 파일 확정 불가)*: 0.5단계에서 로드한 SSOT 본문을 실제로 **대조**했는가 —
-   - **아키텍처** 판정이 `android-arch-patterns` + `CLAUDE.md`(계층/의존성 방향/Hilt/고급 패턴/패키지 구조)와,
+   - **아키텍처** 판정이 `android-arch-patterns` + 프로젝트 지침(계층/의존성 방향/Hilt/고급 패턴/패키지 구조)와,
    - **코드 품질·성능·가독성·테스트** 판정이 `android-code-quality`(네이밍/`runSuspendCatching`/`@Stable`·Strong Skipping 등)와,
    - **재사용성**(데이터 변환 계층) 판정이 `android-data-models`(Entity→VO→UiState·Gson nullable+기본값·`@Stable` 규칙)와 어긋남이 없는지 확인했는가.
    - 일반론이 아니라 **이 프로젝트 컨벤션 위반**으로 판정 근거를 적었는가. SSOT가 설치돼 있는데 읽지 않은 채로 확정하지 않았는가. (부재로 폴백한 경우 그 사유·한계가 리포트에 명시됐는가.)
@@ -154,6 +149,6 @@ gh pr diff <N> -- <그룹 내 경로...> ':(exclude)**/build/**' ':(exclude)*.lo
 
 ## 핵심 준수사항 (요약 — 상세는 0~4단계·SKILL.md)
 
-- **외부 변경 절대 금지** — commit·push·`gh pr review`/`gh pr comment`·`mcp__github__create_pull_request_review`·Approve/리퀘스트 체인지·원본 코드 수정 일절 없음. 산출물은 로컬 `pr_<N>_code_review.md` 하나뿐. GitHub MCP는 read-only 조회만. (상세: SKILL.md "외부 변경 금지")
+- **외부 변경 절대 금지** — commit·push·`gh pr review`/`gh pr comment`·`create_pull_request_review`·Approve/리퀘스트 체인지·원본 코드 수정 일절 없음. 산출물은 로컬 `pr_<N>_code_review.md` 하나뿐. GitHub MCP는 read-only 조회만. (상세: SKILL.md "외부 변경 금지")
 - **제안 코드는 컴파일 가능한 형태**로, 액션 아이템은 측정 가능하게.
 - 절차·중단 조건(staged 분석, `gh` 미인증 중단, PR 설명 부실 시 확인)과 판정 기준 충돌 시 SSOT 우선 등은 위 0~4단계·SKILL.md 에 정의돼 있으며 여기서 반복하지 않습니다.

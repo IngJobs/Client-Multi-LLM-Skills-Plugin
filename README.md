@@ -102,6 +102,16 @@ gemini extensions install "$PWD/plugins/android/android-code-quality"
 gemini skills list
 ```
 
+프로젝트 지침을 `AGENTS.md`로 통일하려면 사용자 설정 `~/.gemini/settings.json`의 기존 설정을 유지하면서 아래 항목을 추가합니다. 다른 프로젝트에도 적용되는 사용자 전역 설정입니다. [설정 안내](https://agents.md/#how-do-i-configure-gemini-cli)
+
+```json
+{
+  "context": {
+    "fileName": "AGENTS.md"
+  }
+}
+```
+
 업데이트는 clone한 저장소에서 실행합니다.
 
 ```sh

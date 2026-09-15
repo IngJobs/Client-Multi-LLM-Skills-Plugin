@@ -1,11 +1,11 @@
 ---
 name: start-work
-description: Jira 티켓 번호로 작업 시작 환경(Jira 상태·필드 + Git 브랜치)을 한 번에 세팅하는 skill. 티켓 summary·버전 조회 후 브랜치 prefix(feature/debt/QA/bugfix/hotfix)와 작업 유형(no-child/하위 작업)을 사용자에게 질문하고, Start Date·수정 버전·In Progress 상태를 Jira 에 반영한 뒤 네이밍 규칙대로 브랜치를 생성·push 합니다. generate-pr-auto(작업 종료/PR 생성)의 반대편(작업 시작점). "작업 시작해줘"·"start-work"·"CT-1234 작업 시작"·"브랜치 만들고 인프로그레스로 바꿔줘" 요청이나 `/start-work <티켓키>` 직접 호출 시 사용.
+description: Jira 티켓 번호로 작업 시작 환경(Jira 상태·필드 + Git 브랜치)을 한 번에 세팅하는 skill. 티켓 summary·버전 조회 후 브랜치 prefix(feature/debt/QA/bugfix/hotfix)와 작업 유형(no-child/하위 작업)을 사용자에게 질문하고, Start Date·수정 버전·In Progress 상태를 Jira 에 반영한 뒤 네이밍 규칙대로 브랜치를 생성·push 합니다. generate-pr-auto(작업 종료/PR 생성)의 반대편(작업 시작점). "작업 시작해줘"·"start-work"·"CT-1234 작업 시작"·"브랜치 만들고 인프로그레스로 바꿔줘" 요청이나 `start-work 티켓키` 이름을 지정한 요청 시 사용.
 ---
 
 # Teamblind Android — 작업 시작 (start-work)
 
-`/start-work <티켓키>` 로 직접 호출하거나 "작업 시작해줘" 류 요청 시 자동 발동되는 스킬입니다. Jira 티켓 하나로 **작업 환경(Jira 상태·필드 + Git 브랜치)을 한 번에 세팅**합니다.
+`start-work <티켓키>` 를 지정해 요청하거나 "작업 시작해줘" 류 요청 시 자동 발동되는 스킬입니다. Jira 티켓 하나로 **작업 환경(Jira 상태·필드 + Git 브랜치)을 한 번에 세팅**합니다.
 
 이 스킬은 **generate-pr-auto**(`android-pr-generation` 플러그인, 작업 종료/PR 생성)의 **반대편(작업 시작점)** 이며, 동일한 **브랜치 네이밍·버전 컨벤션**(`release/<version.name>`, prefix 화이트리스트, 티켓 키 추출)을 공유합니다. 컨벤션의 단일 출처는 generate-pr-auto 의 SKILL.md 이며, 이 문서는 시작 단계 고유의 규칙(브랜치 타입 결정·Jira 필드 세팅)만 정의합니다.
 
@@ -13,9 +13,11 @@ description: Jira 티켓 번호로 작업 시작 환경(Jira 상태·필드 + Gi
 
 ---
 
+실행 전에 [실행 환경 지침](references/execution-environment.md)을 읽고, 현재 환경에 맞는 도구·질문·스킬 참조 방식을 적용합니다.
+
 ## 입력
 
-- **Jira 티켓 키** (예: `CT-5208`) — 인자(`/start-work CT-5208`) 또는 발화에서 추출.
+- **Jira 티켓 키** (예: `CT-5208`) — 인자(`start-work CT-5208`) 또는 발화에서 추출.
   - 매칭 정규식: `[A-Z]{2,}-\d+` (generate-pr-auto 의 **Jira 티켓 키 추출 규칙** 과 동일)
   - 추출 실패 시 사용자에게 직접 질문
 - 추출/입력한 티켓 키는 **항상 사용자에게 한 번 확인**한 뒤 사용 (Jira·Git 양쪽을 변경하므로)
@@ -24,7 +26,7 @@ description: Jira 티켓 번호로 작업 시작 환경(Jira 상태·필드 + Gi
 
 ## 브랜치 타입 결정 (항상 사용자에게 질문)
 
-작업 시작 시 **두 가지를 항상 `AskUserQuestion` 으로 질문**합니다. 자동 추론하지 않습니다.
+작업 시작 시 **두 가지를 항상 사용자 질문으로 질문**합니다. 자동 추론하지 않습니다.
 
 ### 1. 브랜치 prefix 선택
 
@@ -49,7 +51,7 @@ description: Jira 티켓 번호로 작업 시작 환경(Jira 상태·필드 + Gi
 
 하위 작업의 베이스(부모 root `<prefix>/<부모>/root`)가 아직 없을 때, 중단 대신 생성할 수 있습니다.
 
-- **어떤 release 브랜치에서 생성할지 항상 질문**합니다 (`AskUserQuestion`): `release/<version.name>`(기본) + 최근 `release/*` 후보 + "생성 안 함(중단)". 목록에 없으면 "기타"로 직접 입력.
+- **어떤 release 브랜치에서 생성할지 항상 질문**합니다 (사용자 질문): `release/<version.name>`(기본) + 최근 `release/*` 후보 + "생성 안 함(중단)". 목록에 없으면 "기타"로 직접 입력.
 - release 선택 시: 선택한 release 에서 `<prefix>/<부모>/root` 를 생성·push 한 뒤, 그 root 를 베이스로 작업 브랜치(`<prefix>/<부모>/<현재티켓>`)를 만듭니다.
 - 모든 Git 변경은 **최종 확인(7단계) 이후**에 수행하며, 확인 요약에 "부모 root 를 어떤 release 에서 생성"을 명시합니다.
 - **부모 티켓 세팅**: 부모가 이번에 처음 시작되는 것이므로 부모 티켓에 **담당자(본인)·상태 In Progress·Start Date(오늘)·수정 버전**을 설정합니다. 부모 상태 전이도 자식과 동일한 **멀티홉 도달 알고리즘**을 적용합니다.
@@ -63,7 +65,7 @@ description: Jira 티켓 번호로 작업 시작 환경(Jira 상태·필드 + Gi
 
 - Jira 의 `parent.key` 를 부모 티켓으로 사용해 **추천 베이스 `<prefix>/<부모티켓>/root`** 와 **결과 브랜치 `<prefix>/<부모티켓>/<현재티켓>`** 을 산출
 - **원격에 해당 root 가 없어도 추천 후보로 노출**합니다 (목록에서 바로 인지 가능하도록). 단, **추천이 존재 검증을 우회하지 않습니다** — 사용자가 미존재 베이스를 고르면 5단계 가드로 그대로 중단됩니다.
-- 추천은 후보일 뿐이며, 사용자는 다른 베이스(예: 현재 체크아웃 브랜치)나 직접 입력(`AskUserQuestion` 의 "기타")으로 변경할 수 있습니다.
+- 추천은 후보일 뿐이며, 사용자는 다른 베이스(예: 현재 체크아웃 브랜치)나 직접 입력(사용자 질문의 "기타")으로 변경할 수 있습니다.
 - Jira `parent` 가 없으면 추천을 생략하고 베이스를 직접 입력받습니다.
 
 ---
@@ -129,7 +131,7 @@ VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr 
 
 ## 안전 장치
 
-- **최종 확인 1회 필수** — Jira(상태·필드)와 Git(브랜치)을 모두 변경하므로, 실행 직전 `AskUserQuestion` 으로 최종 세팅 내용을 요약해 한 번 확인 후 진행합니다. 요약에 포함할 항목:
+- **최종 확인 1회 필수** — Jira(상태·필드)와 Git(브랜치)을 모두 변경하므로, 실행 직전 사용자 질문으로 최종 세팅 내용을 요약해 한 번 확인 후 진행합니다. 요약에 포함할 항목:
   - 브랜치명 / 베이스 브랜치 (**부모 root 신규 생성 시 어떤 release 에서 생성하는지 포함**)
   - Jira 변경: Start Date(설정/생략), 수정 버전, 상태 → In Progress
 - **멱등성** — 이미 In Progress 거나 필드가 이미 세팅된 경우, **담당자가 이미 할당된 경우** 해당 항목을 건너뛰고, 재실행해도 안전하게 동작합니다 (브랜치가 이미 있으면 생성 대신 체크아웃).
@@ -146,7 +148,7 @@ VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr 
 - **remote fetch 후 분기** — `origin/release/<version.name>`(또는 사용자 입력 베이스) 최신본을 fetch 한 뒤 그 기준으로 분기합니다 (stale 로컬 기준 분기 방지).
 - **브랜치 push + upstream** — 생성·체크아웃 후 origin 에 push 하고 `-u` 로 upstream 을 설정합니다 (바로 PR 생성 가능).
 - **부모 root 신규 생성(선택)** — 하위 작업의 부모 root 가 없을 때, 선택한 release 에서 root 를 먼저 만들어 push 한 뒤 그 위에 작업 브랜치를 생성합니다.
-- **작업 시작 제안(선택)** — 환경 세팅 완료 후, 티켓 본문(description) 내용을 기반으로 **지금 바로 작업을 시작할지** `AskUserQuestion` 으로 물어봅니다. "예" 면 본문을 요구사항으로 구현을 진행하고, "아니오" 면 세팅만 하고 종료합니다 (자동 시작 금지 — 항상 동의 후 진행).
+- **작업 시작 제안(선택)** — 환경 세팅 완료 후, 티켓 본문(description) 내용을 기반으로 **지금 바로 작업을 시작할지** 사용자 질문으로 물어봅니다. "예" 면 본문을 요구사항으로 구현을 진행하고, "아니오" 면 세팅만 하고 종료합니다 (자동 시작 금지 — 항상 동의 후 진행).
 
 ---
 
@@ -158,21 +160,21 @@ VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr 
 
 ## 실행 절차
 
-`/start-work <티켓키>` 호출 또는 "작업 시작해줘" 요청 시 아래 0~10단계를 순서대로 수행합니다. **각 단계의 정확한 bash/MCP 명령과 검증 로직은 [references/workflow.md](references/workflow.md) 를 참조하세요.**
+`start-work <티켓키>` 호출 또는 "작업 시작해줘" 요청 시 아래 0~10단계를 순서대로 수행합니다. **각 단계의 셸/MCP 사용 예시와 검증 로직은 [references/workflow.md](references/workflow.md) 를 참조하세요.**
 
 | 단계 | 내용 |
 |---|---|
-| 0 | 도구 사전 준비 — `AskUserQuestion`·Jira MCP(조회/수정/전이) 스키마 로드 (`ToolSearch`) |
+| 0 | 도구 사전 준비 — 실행 환경에 따라 필요한 질문·조회·실행 기능의 가용성 확인 |
 | 1 | 티켓 키 확정 — 인자/발화에서 추출 후 **사용자 확인** |
 | 2 | 티켓 정보 조회 — summary·issuetype·상태 (`getJiraIssue`) |
 | 3 | 버전 조회 — `app/config/version.properties` 의 `version.name` |
-| 4 | **브랜치 타입 질문(`AskUserQuestion`)** — prefix + (no-child / 하위 작업), 하위 작업이면 베이스 입력 (**subtask면 Jira 부모 기반 `<prefix>/<부모>/root` 추천 후보 제시**) |
+| 4 | **브랜치 타입 질문(사용자 질문)** — prefix + (no-child / 하위 작업), 하위 작업이면 베이스 입력 (**subtask면 Jira 부모 기반 `<prefix>/<부모>/root` 추천 후보 제시**) |
 | 5 | 브랜치명·베이스 산출 — **브랜치 네이밍 규칙** 적용 (하위 작업이면 부모 티켓 추출). 베이스 미존재 시: **부모 root 형태면 release 선택 후 root 생성 / 그 외면 즉시 중단** |
 | 6 | Jira 세팅 값 산출 — 담당자(미할당 시 본인)·Start Date(예외 규칙 반영)·수정 버전·In Progress transition 조회 |
-| 7 | **최종 확인(`AskUserQuestion`)** — 브랜치/베이스/Jira 변경(담당자 포함) 요약 후 진행 여부 확인 |
+| 7 | **최종 확인(사용자 질문)** — 브랜치/베이스/Jira 변경(담당자 포함) 요약 후 진행 여부 확인 |
 | 8 | Jira 반영 — 자식: 담당자·상태(In Progress)(+ no-child/일반 하위는 Start Date·수정 버전). **CREATE_ROOT면 부모 티켓도 담당자·In Progress·Start Date·수정 버전 설정하고, 자식은 Start Date·수정 버전 생략** (멱등·멀티홉) |
 | 9 | 브랜치 생성 — remote fetch → (CREATE_ROOT면 release 에서 부모 root 먼저 생성·push) → 베이스에서 분기·체크아웃 → origin push + upstream(`-u`) |
-| 10 | **티켓 본문 기반 작업 시작 제안(`AskUserQuestion`)** — description 요약 후 "지금 작업 시작할까요?" → 예: 본문 기반 구현 진행 / 아니오: 세팅만 하고 종료 |
+| 10 | **티켓 본문 기반 작업 시작 제안(사용자 질문)** — description 요약 후 "지금 작업 시작할까요?" → 예: 본문 기반 구현 진행 / 아니오: 세팅만 하고 종료 |
 
 > 7단계 확인 없이는 Jira·Git 변경을 수행하지 않습니다. 8·9단계는 멱등하게 동작합니다. 10단계는 제안이며 사용자 동의 없이 코드 변경을 시작하지 않습니다.
 
@@ -184,7 +186,7 @@ VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr 
 
 - "작업 시작해줘" / "이 티켓 작업 시작" / "CT-1234 작업 시작해"
 - "브랜치 만들고 In Progress 로 바꿔줘" / "시작 세팅해줘"
-- `/start-work` 또는 `/start-work <티켓키>` 직접 호출 시
+- `start-work` 또는 `start-work <티켓키>` 명시 요청 시
 - 작업 시작 시 브랜치 네이밍/베이스 결정/Jira 시작 세팅 관련 질문
 
 ## 설치 의존성

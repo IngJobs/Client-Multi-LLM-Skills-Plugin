@@ -38,17 +38,13 @@ git status --short              # 원본 트리 상태 스냅샷 (마지막에 �
 - `gh` 미설치/미인증이면 안내하고 **중단**합니다.
 - 현재 위치가 리뷰 대상 리포가 아니면 중단하고 이동을 안내합니다.
 - `git status --short` 결과를 기록해 둡니다. **5단계 종료 시 이것과 같아야** 원본 무손상이 증명됩니다. dirty 한 파일이 이미 있어도 그대로 두고 건드리지 않습니다.
-- `AskUserQuestion` 이 deferred 면 `ToolSearch(query="select:AskUserQuestion")` 로 로드합니다(단위 20개 초과 분기·게시 확인·워크트리 제거 확인에 씁니다).
+- 사용자 질문과 필요한 조회 기능은 [실행 환경 지침](execution-environment.md)에 따라 준비합니다.
 
 ### 0.5단계 — 질문 재료 SSOT 로드
 
 `review-pr` 과 같은 SSOT를 읽되 **용도가 다릅니다.** 컨벤션 위반을 판정하기 위해서가 아니라 `[확인 필요]` **질문의 재료**로만 씁니다(SKILL.md `프로젝트 컨벤션(SSOT) 사용 방침`).
 
-```bash
-ls "$HOME"/.claude/skills/{android-arch-patterns,android-code-quality,android-data-models}/SKILL.md 2>/dev/null
-ls "$ROOT"/.claude/skills/{android-arch-patterns,android-code-quality,android-data-models}/SKILL.md 2>/dev/null
-ls "$ROOT"/CLAUDE.md 2>/dev/null
-```
+실행 환경의 스킬 참조 절차로 `android-arch-patterns`·`android-code-quality`·`android-data-models`의 실제 본문을 읽습니다. 대상 저장소의 프로젝트 지침도 적용 범위에 맞게 확인합니다. 읽은 경로 또는 미설치·발견 실패·접근 거부 사유를 기록합니다.
 
 없으면 질문의 폭이 좁아질 뿐이며 **워크플로우는 멈추지 않습니다.**
 
@@ -140,7 +136,7 @@ git -C "$WT" diff -U0 "$BASE_SHA" "$HEAD_SHA"   # @@ -a,b +c,d @@ 의 +c,d 가 h
 
 **3-2. 논리 단위를 정하고 마커를 심습니다.**
 
-1. `gh pr diff <N>` 과 커밋 단위를 근거로 논리 단위 m 개를 만듭니다(SKILL.md `논리 단위 분할`). **m > 20 이면 3지선다를 `AskUserQuestion` 으로 먼저 묻습니다.**
+1. `gh pr diff <N>` 과 커밋 단위를 근거로 논리 단위 m 개를 만듭니다(SKILL.md `논리 단위 분할`). **m > 20 이면 3지선다를 사용자 질문으로 먼저 묻습니다.**
 2. 단위마다 대표 지점 1곳 + 참조 지점 0곳 이상을 정합니다. 대표는 그 단위의 의도가 가장 잘 드러나는 곳입니다.
 3. **워크트리 안의 파일에만** 마커를 넣습니다. 위치는 그 단위 **경계 주석의 바로 위**입니다. 마커 불가 파일은 `[마커 없음]` 채팅 전용 단위로 남깁니다.
 4. 참조 마커의 `— 본문 <파일>:<라인>` 은 **모든 삽입이 끝난 뒤** 실제 라인으로 채웁니다. 같은 파일명이 여러 모듈에 있으면 모듈 경로까지 적습니다.

@@ -14,31 +14,11 @@
 
 ---
 
-## 0단계 — 도구 사전 준비 (필수, 최우선 수행)
+### 0단계 — 도구 사전 준비
 
-워크플로우 진행 중 도구 호출 시점에 `InputValidationError` 또는 턴 조기 종료가 발생하지 않도록, **반드시 1단계 시작 전에** 사용할 도구들의 스키마 가용성을 확인합니다.
+[실행 환경 지침](execution-environment.md)에 따라 사용자 질문, Git/gh 실행과 GitHub PR 생성 기능의 가용성을 확인합니다. 지금 필요한 기능만 준비하며, 선택적 단계의 도구는 그 단계를 선택했을 때 확인합니다.
 
-**확인 절차**
-
-1. 시스템 리마인더(`<system-reminder>`)에서 deferred tools 목록을 확인
-2. 다음 도구가 deferred 상태(이름만 있고 스키마 미로드)라면 `ToolSearch` 로 일괄 스키마 로드:
-   - `AskUserQuestion` — 타겟 선택·PR 생성 확인·review open 질문용
-   - `mcp__github__create_pull_request` — PR 생성용 (대안: Bash `gh pr create`)
-3. 이미 즉시 사용 가능한 도구는 다시 로드할 필요 없음
-
-**일괄 로드 호출 예시**
-
-```
-ToolSearch(query="select:AskUserQuestion,mcp__github__create_pull_request", max_results=10)
-```
-
-**원칙**
-
-- 0단계를 건너뛰면 사용자 확인 단계에서 `AskUserQuestion` 호출 직전에 턴이 종료되어 워크플로우가 멈출 수 있습니다
-- ToolSearch 결과의 `<functions>` 블록에 스키마가 표시되면 로드 완료. 이후 1단계로 진행
-- 로드 실패 시 사용자에게 알리고 Bash + `gh` CLI 대안 경로로 진행 가능
-
----
+PR 생성에는 기존 `gh` 경로를 사용할 수 있습니다. GitHub MCP를 사용할 경우 실제 스키마에서 같은 기능을 확인합니다.
 
 ## 1단계 — 소스 버전·타겟 결정 (인자 우선, 대화형 폴백)
 
@@ -50,7 +30,7 @@ ToolSearch(query="select:AskUserQuestion,mcp__github__create_pull_request", max_
 ```
 
 - **소스 버전**: 인자에 있으면 사용, 없으면 `app/config/version.properties` 의 `version.name` 으로 추론.
-- **타겟**: 인자에 있으면 사용, 없으면 `AskUserQuestion` 으로 (master / 다음 release / feature root) 선택.
+- **타겟**: 인자에 있으면 사용, 없으면 사용자 질문으로 (master / 다음 release / feature root) 선택.
 - 타겟 해석:
   - `master` → base `master`
   - `<버전>` 형태(예: `3.87.0`) → base `release/3.87.0`
@@ -72,7 +52,7 @@ git rev-parse --verify origin/release/<버전>   # 소스 존재 확인
 git rev-parse --verify origin/<base>            # 타겟 존재 확인
 ```
 
-- 둘 중 하나라도 없으면 `AskUserQuestion` 으로 정정.
+- 둘 중 하나라도 없으면 사용자 질문으로 정정.
 
 ## 3단계 — 소스에서 sync 브랜치 생성
 
@@ -117,7 +97,7 @@ git push -u origin "<head 슬러그>"
 
 ## 7단계 — 사용자 확인 후 Draft PR 생성
 
-**필수**: 외부 시스템에 영향을 주므로 반드시 `AskUserQuestion` 으로 확인합니다.
+**필수**: 외부 시스템에 영향을 주므로 반드시 사용자 질문으로 확인합니다.
 
 질문 예시:
 > "Sync PR 정보가 준비되었습니다.
@@ -153,7 +133,7 @@ gh pr create \
 
 Draft PR 생성에 성공한 직후 수행합니다. `gh pr create` 가 출력한 PR URL/번호를 확보해 둡니다.
 
-**`AskUserQuestion` 질문 예시**
+**사용자 확인 질문 예시**
 
 > "Draft PR이 생성되었습니다: <PR URL>
 > 지금 review 를 open(Ready for review) 할까요?"
@@ -178,15 +158,15 @@ gh pr ready <PR번호>     # 또는 gh pr ready <PR URL>
 
 ## 품질 기준
 
-- PR 생성 전 `AskUserQuestion` 사용자 확인 필수
-- 항상 **`--draft` 로 생성**한 뒤, review open 여부를 별도 `AskUserQuestion` 으로 물어 `gh pr ready` 로만 Draft 해제
+- PR 생성 전 사용자 확인 필수
+- 항상 **`--draft` 로 생성**한 뒤, review open 여부를 별도 사용자 질문으로 물어 `gh pr ready` 로만 Draft 해제
 - 기본 Assignee(`@me`)·라벨 세트를 항상 포함 (사용자 override 시 제외)
 - 충돌 미해결 상태로 push/PR 생성 금지. 충돌 라벨이 실제 머지 결과와 일치하는지 확인
 - 본문은 비움 (제목으로 의미 충분)
 
 ## 주의사항
 
-- **0단계(도구 사전 준비) 누락 금지** — 1단계 시작 전 반드시 deferred 도구 스키마 로드 확인
+- **0단계(도구 사전 준비)** — 실행에 필요한 기능의 가용성을 확인하고, 선택적 기능은 해당 단계에서 확인합니다.
 - `gh pr create` 실행 전 사용자 확인 필수, **생성은 항상 `--draft`** — review open 은 생성 후 별도 질문으로만 진행
 - `gh pr ready` 는 사용자가 "지금 open" 을 선택한 경우에만 실행 (자동 open 금지)
 - 라벨명에 공백·괄호가 포함되므로 `--label` 인자에 반드시 따옴표 사용

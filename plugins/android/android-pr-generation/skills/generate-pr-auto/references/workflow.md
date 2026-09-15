@@ -16,33 +16,11 @@
 
 ## 워크플로우
 
-### 0단계 — 도구 사전 준비 (필수, 최우선 수행)
+### 0단계 — 도구 사전 준비
 
-워크플로우 진행 중 도구 호출 시점에 `InputValidationError` 또는 턴 조기 종료가 발생하지 않도록, **반드시 1단계 시작 전에** 사용할 도구들의 스키마 가용성을 확인합니다.
+[실행 환경 지침](execution-environment.md)에 따라 사용자 질문, 파일 읽기·Git/gh 실행, Jira 이슈 조회 기능의 가용성을 확인합니다. 지금 필요한 기능만 준비하며, 선택적 단계의 도구는 그 단계를 선택했을 때 확인합니다.
 
-**확인 절차**
-
-1. 시스템 리마인더(`<system-reminder>`)에서 deferred tools 목록을 확인
-2. 다음 도구가 deferred 상태(이름만 있고 스키마 미로드)라면 `ToolSearch` 로 일괄 스키마 로드:
-   - `AskUserQuestion` — 10·11·12·13·14단계 사용자 확인용
-   - `mcp__jira__get-jira-issue` — 4단계 Jira 조회용
-   - `mcp__github__create_pull_request` — 11단계 PR 생성용 (대안: Bash `gh pr create`)
-   - `mcp__github__get_pull_request_files`·`mcp__github__create_pull_request_review` — 13단계 코드리뷰 인라인 코멘트 게시용 (work 한정, 사용자가 리뷰·게시를 승인한 경우에만 사용)
-3. 이미 즉시 사용 가능한 도구는 다시 로드할 필요 없음
-
-**일괄 로드 호출 예시**
-
-```
-ToolSearch(query="select:AskUserQuestion,mcp__jira__get-jira-issue,mcp__github__create_pull_request,mcp__github__get_pull_request_files,mcp__github__create_pull_request_review", max_results=10)
-```
-
-> 13단계 게시 도구(`get_pull_request_files`·`create_pull_request_review`)는 work intent 에서만, 그리고 사용자가 13단계에서 리뷰·게시를 승인한 시점에 로드해도 됩니다. complete intent 는 13단계가 없으므로 불필요합니다.
-
-**원칙**
-
-- 0단계를 건너뛰면 사용자 확인 단계(11단계)에서 `AskUserQuestion` 호출 직전에 턴이 종료되어 워크플로우가 멈출 수 있습니다
-- ToolSearch 결과의 `<functions>` 블록에 스키마가 표시되면 로드 완료. 이후 1단계로 진행
-- 로드 실패 시 사용자에게 알리고 Bash + `gh` CLI 대안 경로로 진행 가능
+GitHub 작업은 기존 `gh` 경로를 사용하거나 같은 기능의 MCP 스키마를 확인합니다. 리뷰 파일 조회·코멘트 게시 기능은 13단계를 선택한 경우에만 준비합니다. `gh`는 Jira 조회의 대안이 아닙니다.
 
 ### 1단계 — 현재 브랜치 감지
 
@@ -54,8 +32,8 @@ git rev-parse --abbrev-ref HEAD
 
 `SKILL.md` 의 **PR intent 판별 규칙** 을 적용해 `INTENT` 변수를 `work` 또는 `complete` 로 확정합니다.
 
-- `/generate-pr-auto complete` 인자 또는 "complete PR"·"QA 완료"·"릴리즈에 머지" 의도 → `INTENT=complete`
-- 현재 브랜치가 `feature/<티켓>/root` 인데 의도가 모호 → `AskUserQuestion` 으로 work/complete 확인
+- `generate-pr-auto complete` 인자 또는 "complete PR"·"QA 완료"·"릴리즈에 머지" 의도 → `INTENT=complete`
+- 현재 브랜치가 `feature/<티켓>/root` 인데 의도가 모호 → 사용자 질문으로 work/complete 확인
 - 그 외 → `INTENT=work` (기존 동작)
 
 > 이후 2·5·6·8·9·12·13·15단계가 `INTENT` 에 따라 분기합니다(6·9·12·13·15는 work 한정이라 complete 는 건너뜀). 나머지 단계(0·1·1.5·3·4·7·10·11·14)는 공통입니다.
@@ -67,7 +45,7 @@ git rev-parse --abbrev-ref HEAD
 ```bash
 VERSION=$(grep '^version.name' app/config/version.properties | cut -d= -f2 | tr -d ' ')  # 예: 3.86.0
 BASE_BRANCH="release/${VERSION}"
-git rev-parse --verify "origin/${BASE_BRANCH}"   # 존재 확인. 없으면 AskUserQuestion 으로 확인
+git rev-parse --verify "origin/${BASE_BRANCH}"   # 존재 확인. 없으면 사용자 질문으로 확인
 ```
 
 > 이후 complete 의 본문(`${VERSION}`)·base(`${BASE_BRANCH}`) 슬롯은 여기서 정의한 변수를 사용합니다.
@@ -95,7 +73,7 @@ CANDIDATES=$(comm -12 \
   <(printf '%s\n' "$ACTUAL"        | sort -u) \
   | grep -vx "origin/<current>")
 
-# 3) 교집합이 비면 거리 비교 건너뛰고 AskUserQuestion 폴백
+# 3) 교집합이 비면 거리 비교 건너뛰고 사용자 질문 폴백
 [ -z "$CANDIDATES" ] && askUserBaseBranch
 
 # 4) 화이트리스트 내에서만 merge-base 거리 비교, 최소 거리 ref 선택
@@ -108,7 +86,7 @@ done
 
 - 후보 존재 확인: `git rev-parse --verify origin/<후보>` (없으면 로컬 ref 도 시도)
 - 1순위 미존재/실패 시 → 2순위로 폴백
-- 둘 다 실패 시 → `AskUserQuestion` 으로 사용자에게 베이스 브랜치를 직접 묻기
+- 둘 다 실패 시 → 사용자에게 베이스 브랜치를 직접 묻기
 - 최종 검증: `git merge-base <후보> HEAD` 결과가 비어있지 않은지 확인
 - 인자(arg1)로 사용자가 베이스를 명시한 경우 자동 추론을 건너뛰고 그 값을 사용
 
@@ -121,7 +99,7 @@ done
 ### 4단계 — Jira 정보 조회
 
 ```
-mcp__jira__get-jira-issue(issueKey="<티켓키>")
+getJiraIssue(issueKey="<티켓키>")
 ```
 
 - 응답에서 `summary` (티켓 제목), `description` (티켓 본문), `issuetype` 추출
@@ -242,7 +220,7 @@ PR_DESCRIPTION_<티켓키>.md
 
 11단계 사용자 확인 **전에** 수행합니다. PR 에 GitHub 마일스톤을 부착할지 결정합니다.
 
-**1. 설정 여부 질문 (`AskUserQuestion`)**
+**1. 설정 여부 질문 (사용자 질문)**
 
 > "PR 에 마일스톤을 설정할까요?"
 >
@@ -256,7 +234,7 @@ PR_DESCRIPTION_<티켓키>.md
 gh api "repos/{owner}/{repo}/milestones?state=open&sort=due_on&direction=asc" --jq '.[].title'
 ```
 
-- 조회된 마일스톤 title 들을 `AskUserQuestion` 옵션으로 제시해 하나를 선택받고 `MILESTONE` 변수에 기록합니다 (목록에 없는 값은 "기타"로 직접 입력 가능).
+- 조회된 마일스톤 title 들을 사용자 질문 옵션으로 제시해 하나를 선택받고 `MILESTONE` 변수에 기록합니다 (목록에 없는 값은 "기타"로 직접 입력 가능).
 - **목록이 비어 있으면**(열린 마일스톤 없음) 그 사실을 안내하고 마일스톤 없이 진행합니다 — **마일스톤을 새로 만들지 않습니다**.
 - 조회 실패(권한/네트워크) 시에도 그 사실을 안내하고 마일스톤 없이 진행합니다 (PR 생성 자체는 계속).
 
@@ -266,7 +244,7 @@ gh api "repos/{owner}/{repo}/milestones?state=open&sort=due_on&direction=asc" --
 
 ### 11단계 — 사용자 확인 후 Draft PR 생성
 
-**필수**: 외부 시스템에 영향을 주는 액션이므로 반드시 `AskUserQuestion` 으로 사용자 확인을 받습니다.
+**필수**: 외부 시스템에 영향을 주는 액션이므로 반드시 사용자에게 확인을 받습니다.
 
 질문 예시:
 > "PR 정보가 준비되었습니다. 
@@ -327,7 +305,7 @@ gh pr create \
 **마일스톤 부착 (10단계에서 선택한 경우, work/complete 공통)**
 
 - 10단계에서 `MILESTONE` 이 결정된 경우 위 work/complete `gh pr create` 명령에 `--milestone "${MILESTONE}"` 인자를 추가합니다. 미설정이면 인자 자체를 넣지 않습니다.
-- MCP `mcp__github__create_pull_request` 는 마일스톤 인자를 지원하지 않으므로, 마일스톤 부착 시에는 Bash `gh pr create` 경로를 사용합니다.
+- MCP `create_pull_request` 는 마일스톤 인자를 지원하지 않으므로, 마일스톤 부착 시에는 셸 `gh pr create` 경로를 사용합니다.
 - 마일스톤 부착 실패 시(미존재·권한 등) 해당 인자만 제외하고 PR 생성은 계속 진행하며 사용자에게 경고합니다 (라벨 누락 정책과 동일).
 
 **기본 Assignee / Label 규칙**
@@ -344,7 +322,7 @@ gh pr create \
 
 Draft PR 생성 성공 직후, **13단계(코드리뷰) 전에** 수행합니다. `INTENT=complete` 는 이 단계가 없습니다.
 
-**1. 업로드 확인 질문 (`AskUserQuestion`)**
+**1. 업로드 확인 질문 (사용자 질문)**
 
 프로젝트 루트의 untracked 미디어를 먼저 탐지해 질문에 함께 나열합니다:
 
@@ -378,9 +356,9 @@ git -c core.quotepath=false status --porcelain | grep '^??' | grep -iE '\.(png|j
 
 Draft PR 생성(필요 시 12단계 ScreenShot 컨버팅) 직후, **14단계(review open 질문) 전에** 수행합니다. `INTENT=complete` 는 이 단계가 없습니다. 11단계에서 확보한 PR 번호/URL 을 사용합니다.
 
-이 단계의 게시는 **외부 시스템 쓰기**이므로, 아래 **두 번의 `AskUserQuestion` 승인**(리뷰 수행 여부 + 게시 직전 확인) 없이는 절대 게시하지 않습니다.
+이 단계의 게시는 **외부 시스템 쓰기**이므로, 아래 **두 번의 사용자 질문 승인**(리뷰 수행 여부 + 게시 직전 확인) 없이는 절대 게시하지 않습니다.
 
-**1. 리뷰 수행 여부 질문 (`AskUserQuestion`)**
+**1. 리뷰 수행 여부 질문 (사용자 질문)**
 
 > "Draft PR이 생성되었습니다: <PR URL>
 > 지금 코드리뷰를 수행하고 결과를 PR 인라인 코멘트로 달아 드릴까요?"
@@ -392,17 +370,13 @@ Draft PR 생성(필요 시 12단계 ScreenShot 컨버팅) 직후, **14단계(rev
 
 **2. `review-pr` 실행 (read-only 리포트 생성)**
 
-`Skill` 도구로 `review-pr` 을 PR 번호와 함께 호출합니다:
+실행 환경의 스킬 참조 절차로 [review-pr](../../review-pr/SKILL.md)을 읽고, 그 workflow를 PR 번호와 함께 수행합니다. 호스트에 스킬 활성화 기능이 있으면 사용하며, 별도의 서브에이전트를 필수로 생성하지 않습니다.
 
-```
-Skill(skill="review-pr", args="<PR번호>")
-```
-
-- 산출물은 **로컬 리포트 `pr_<PR번호>_code_review.md` 하나뿐**입니다(`../review-pr/SKILL.md` 의 "외부 변경 금지" 원칙). `review-pr` 은 어떤 경우에도 GitHub 에 게시하지 않습니다.
+- 산출물은 **로컬 리포트 `pr_<PR번호>_code_review.md` 하나뿐**입니다(`../../review-pr/SKILL.md` 의 "외부 변경 금지" 원칙). `review-pr` 은 어떤 경우에도 GitHub 에 게시하지 않습니다.
 - 게시 책임은 본 스킬(`generate-pr-auto`)에만 있습니다. 아래 3~4번에서 이 리포트를 읽어 게시합니다.
 - `review-pr` 실행이 실패하거나 리포트가 생성되지 않으면: 사유를 안내하고 게시 없이 14단계로 진행합니다.
 
-**3. 리포트 미리보기 + 게시 확인 질문 (`AskUserQuestion`)**
+**3. 리포트 미리보기 + 게시 확인 질문 (사용자 질문)**
 
 생성된 `pr_<PR번호>_code_review.md` 를 읽어 **종합 점수·관점별 점수표·주요 finding 개수(P0/P1)** 를 요약해 보여준 뒤 게시 여부를 확인합니다:
 
@@ -423,12 +397,12 @@ gh repo view --json owner,name
 
 ```
 # 변경 파일과 patch(diff hunk) 목록 확보 — 인라인 가능 라인 판정용
-mcp__github__get_pull_request_files(owner=<owner>, repo=<repo>, pullNumber=<PR번호>)
+get_pull_request_files(owner=<owner>, repo=<repo>, pullNumber=<PR번호>)
 ```
 
 **4-2. finding 파싱·매핑**
 
-리포트의 각 finding 4부 구조에서 `**위치**: \`<파일경로:라인>\`` 과 `[P0]/[P1]/[P2] <제목>` 을 파싱합니다(포맷은 `../review-pr/SKILL.md` 의 finding 구조가 단일 출처).
+리포트의 각 finding 4부 구조에서 `**위치**: \`<파일경로:라인>\`` 과 `[P0]/[P1]/[P2] <제목>` 을 파싱합니다(포맷은 `../../review-pr/SKILL.md` 의 finding 구조가 단일 출처).
 
 - **인라인 가능** (해당 `파일경로` 가 변경 파일이고 `라인` 이 그 파일 diff hunk 에 포함됨) → `comments[]` 에 누적:
   - `{path: "<파일경로>", line: <라인>, body: "[P0] <제목>\n\n<문제 요약>\n\n<해결방법 요약>\n\n---\n_Generated by Claude's code review skill_"}`
@@ -439,7 +413,7 @@ mcp__github__get_pull_request_files(owner=<owner>, repo=<repo>, pullNumber=<PR�
 **4-3. 단일 호출로 게시**
 
 ```
-mcp__github__create_pull_request_review(
+create_pull_request_review(
   owner=<owner>,
   repo=<repo>,
   pull_number=<PR번호>,
@@ -467,7 +441,7 @@ gh pr comment <PR번호> --body-file pr_<PR번호>_code_review.md
 
 Draft PR 생성에 성공한 직후 수행합니다. `gh pr create` 가 출력한 PR URL/번호를 확보해 둡니다.
 
-**`AskUserQuestion` 질문 예시**
+**사용자 확인 질문 예시**
 
 > "Draft PR이 생성되었습니다: <PR URL>
 > 지금 review 를 open(Ready for review) 할까요?"
@@ -518,7 +492,7 @@ gh pr view <PR번호|URL> --json number,url,body
 
 - `# ScreenShot(Optional)` 섹션 **안팎의 모든 미디어 링크**(SKILL.md 인식 패턴 4종)를 수집합니다 — 드래그앤드롭 위치가 다른 섹션이어도 수거
 - **이미 ScreenShot 표 셀(`<img>`/`<video>`)에 들어 있는 URL 은 수집에서 제외**합니다 (재실행 멱등성 — 같은 요청을 반복해도 표가 중복 생성되지 않아야 함)
-- 파일명을 알 수 없는 bare URL 은 `AskUserQuestion` 으로 파일명과 이미지/비디오 여부를 확인
+- 파일명을 알 수 없는 bare URL 은 사용자 질문으로 파일명과 이미지/비디오 여부를 확인
 - 수집 0건이면: "본문에서 미디어 링크를 찾지 못했습니다. PR 본문에 드래그앤드롭으로 올린 뒤 다시 요청해주세요" 안내 후 종료
 
 **3. 표 생성**
@@ -534,7 +508,7 @@ SKILL.md **표 변환 규칙** 을 적용합니다. ScreenShot 섹션에 기존 
 
 **5. 사용자 확인 후 적용**
 
-변경될 ScreenShot 섹션 미리보기를 보여주고 `AskUserQuestion` 으로 확인을 받습니다 (외부 시스템에 영향을 주는 액션). 승인 시 **본문을 다시 읽어 재조립한 뒤** 적용합니다 (읽기-수정 사이에 웹에서 본문이 바뀌었을 경우의 변경 유실 방지):
+변경될 ScreenShot 섹션 미리보기를 보여주고 사용자 질문으로 확인을 받습니다 (외부 시스템에 영향을 주는 액션). 승인 시 **본문을 다시 읽어 재조립한 뒤** 적용합니다 (읽기-수정 사이에 웹에서 본문이 바뀌었을 경우의 변경 유실 방지):
 
 ```bash
 gh pr view <PR번호> --json body            # 승인 직후 재읽기
@@ -564,14 +538,14 @@ gh pr edit <PR번호> --body-file PR_BODY_<PR번호>.md
 - (complete) 본문은 한 줄 머지 사유만. 4섹션 포맷·`PR_DESCRIPTION_*.md` 파일 생성 금지(`--body` 직접 전달)
 - (complete) **`TYPE_COMPLETE` 하나만 부착** — `gh pr create` 에 `--label "TYPE_COMPLETE"` 만 넣고 그 외 라벨은 넣지 않음
 - (work·complete) 마일스톤은 10단계에서 사용자가 설정을 선택한 경우에만 부착 — 레포의 **열린 마일스톤 목록에서 선택**하며, 없는 마일스톤을 새로 만들지 않음
-- 항상 Draft PR로 생성 (`--draft` 플래그 누락 금지) 후, review open 여부를 별도 `AskUserQuestion` 으로 물어 `gh pr ready` 로만 Draft 해제
+- 항상 Draft PR로 생성 (`--draft` 플래그 누락 금지) 후, review open 여부를 별도 사용자 질문으로 물어 `gh pr ready` 로만 Draft 해제
 - (work) 기본 Assignee(`@me`) / Label(타입 `TYPE_*`, `PRIORITY_LOW`, `RISK_HIGH(ApproveCount >= 2)`) 항상 포함 (사용자 override 시 제외). complete 는 Assignee(`@me`) + `TYPE_COMPLETE` 라벨만 부착
 
 ## 주의사항
 
 - **PR 본문을 수정하는 모든 작업(전면 업데이트·부분 수정·12/16단계 일체)은 `SKILL.md` 의 "PR 본문 수정 공통 원칙" 을 따를 것**
 - 본문 유실 사고 시 GitHub GraphQL `PullRequest.userContentEdits` (본문 편집 이력)로 이전 버전 복구 가능
-- **0단계(도구 사전 준비) 누락 금지** — 1단계 시작 전 반드시 deferred 도구 스키마 로드 확인
+- **0단계(도구 사전 준비)** — 실행에 필요한 기능의 가용성을 확인하고, 선택적 기능은 해당 단계에서 확인합니다.
 - `gh pr create` 실행 전 사용자 확인 필수, **생성은 항상 `--draft`** — review open 은 생성 후 별도 질문으로만 진행
 - `gh pr ready` 는 사용자가 "지금 open" 을 선택한 경우에만 실행 (자동 open 금지)
 - Jira 조회 실패 시에도 워크플로우는 멈추지 않고 fallback 으로 진행
