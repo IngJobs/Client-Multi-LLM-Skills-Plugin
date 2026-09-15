@@ -39,25 +39,23 @@ Client-Multi-LLM-Skills-Plugin/
 
 ## 사용
 
-사용할 CLI의 설치·로그인을 먼저 완료합니다. Claude와 Codex 사용자는 **원격 마켓플레이스 등록 → 플러그인 설치 → 마켓플레이스·플러그인 업데이트** 순서로 사용하며, 저장소를 직접 clone하거나 Python을 설치할 필요가 없습니다.
+사용할 CLI의 설치·로그인을 먼저 완료합니다.
 
-Private 저장소이므로 사전에 `gh auth login` 또는 Git 자격증명 설정을 완료하고 저장소 읽기 권한을 확보해야 합니다.
-
+```
 아래 주소는 현재 origin인 `IngJobs/Client-Multi-LLM-Skills-Plugin` 기준입니다. 원격에 플러그인과 카탈로그가 반영된 뒤 사용할 수 있으며, 팀 저장소로 이전하면 등록 주소를 변경합니다. 마켓플레이스 이름은 저장소 이름과 별개인 `client-multi-llm-skills`입니다.
-
-플러그인별 `plugin-config.json`의 `targets`와 `dependencies`를 확인하고, 의존 플러그인이 있으면 해당 의존성부터 설치합니다. 현재 지식형 스킬에는 MCP가 필요하지 않습니다. MCP를 사용하는 스킬은 해당 CLI에서도 별도 연결·인증이 필요합니다. 원본과 이 저장소에서 같은 이름의 플러그인을 중복 활성화하지 않습니다.
+```
 
 ### Claude Code
 
 Claude 대화창에서 실행합니다.
 
-#### 마켓플레이스 추가
+#### 1. 마켓플레이스 추가
 
 ```text
 /plugin marketplace add IngJobs/Client-Multi-LLM-Skills-Plugin
 ```
 
-#### 플러그인 설치 / 업데이트
+#### 2. 플러그인 설치 / 업데이트
 
 ```text
 /plugin
@@ -78,13 +76,13 @@ Claude 대화창에서 실행합니다.
 
 터미널에서 실행합니다. 실행 디렉토리는 이 저장소일 필요가 없습니다.
 
-#### 마켓플레이스 추가
+#### 1. 마켓플레이스 추가
 
 ```sh
 codex plugin marketplace add https://github.com/IngJobs/Client-Multi-LLM-Skills-Plugin.git
 ```
 
-#### 플러그인 설치
+#### 2. 플러그인 설치
 
 ```sh
 codex plugin list
@@ -93,7 +91,7 @@ codex plugin add android-code-quality@client-multi-llm-skills
 
 다른 플러그인을 설치하려면 `android-code-quality`를 해당 플러그인 이름으로 바꿉니다.
 
-#### 업데이트
+#### 3. 업데이트
 
 원격 마켓플레이스를 갱신한 뒤 해당 플러그인을 다시 설치합니다.
 
